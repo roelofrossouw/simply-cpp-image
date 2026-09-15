@@ -4,7 +4,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 project(simply-cpp-image)
 
-set(SC_IMAGE_VERSION 1.0.2)
+find_package(Git QUIET)
+if (Git_FOUND)
+    execute_process(
+            COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE SC_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            RESULT_VARIABLE GIT_RESULT
+    )
+
+    if (GIT_RESULT EQUAL 0)
+        string(REGEX REPLACE "^v" "" SC_IMAGE_VERSION "${SC_IMAGE_VERSION}")
+        set(SC_IMAGE_VERSION "1.0.0")
+    else ()
+        set(SC_IMAGE_VERSION "1.0.0")
+    endif ()
+else ()
+    set(SC_IMAGE_VERSION "1.0.0")
+endif ()
 message(STATUS "SC Image Version: ${SC_IMAGE_VERSION}")
 
 # Options:
