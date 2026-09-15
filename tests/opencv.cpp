@@ -1,5 +1,4 @@
 #include <image.h>
-
 #include <algorithm>
 #include <cassert>
 #include <filesystem>
@@ -7,7 +6,7 @@
 namespace fs = std::filesystem;
 
 int main() {
-    const fs::path source = "../sample/test.jpg";
+    const fs::path source = "resource/test.jpg";
     sc::image original{source.string()};
     assert(!original.empty());
     assert(original.size().width() > 0);
