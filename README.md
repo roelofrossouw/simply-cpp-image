@@ -18,18 +18,18 @@ resized.save("photo-small.jpg");
 
 ### CMake
 
-Add this repository to an existing CMake project and link the `sc-image`
-target:
+Install `simply-cpp` and this repository, then consume the exported package:
 
 ```cmake
-add_subdirectory(third_party/simply-cpp-image)
+find_package(sc CONFIG REQUIRED)
+find_package(sc-image CONFIG REQUIRED)
 
 add_executable(example main.cpp)
-target_link_libraries(example PRIVATE sc-image)
+target_link_libraries(example PRIVATE sc-image::sc-image)
 ```
 
-The target uses C++20 and exposes the required `simply-cpp` include paths
-through its dependencies.
+For local development only, configure with
+`-DSC_IMAGE_USE_LOCAL_SC=ON -DSC_SOURCE_DIR=/path/to/simply-cpp`.
 
 ### Loading and editing images
 
@@ -85,11 +85,9 @@ const size_t count = image.blob_size();
 1. OpenCV with the `core`, `ml`, `imgproc`, `imgcodecs`, `dnn`, `highgui`,
    and (on non-Apple platforms) `calib3d` components.
 
-OpenCV must be installed before configuring the project. On macOS, the
-project's initial setup can install it with Homebrew; on Debian-based Linux
-systems it can install the development package with `apt`. This setup code
-only runs when the build directory is initialized and depends on the
-platform package manager being available.
+OpenCV must be installed before configuring the project. On macOS, install it
+with Homebrew; on Debian-based Linux systems install the development package
+with `apt`.
 
 For a manual installation, examples are:
 
