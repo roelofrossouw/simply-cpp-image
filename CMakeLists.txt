@@ -9,16 +9,14 @@ if (Git_FOUND)
     execute_process(
             COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE SC_VERSION
+            OUTPUT_VARIABLE SC_IMAGE_VERSION
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
             RESULT_VARIABLE GIT_RESULT
     )
 
     if (GIT_RESULT EQUAL 0)
-        message(STATUS "Git tag: ${SC_IMAGE_VERSION}")
         string(REGEX REPLACE "^v" "" SC_IMAGE_VERSION "${SC_IMAGE_VERSION}")
-        set(SC_IMAGE_VERSION "1.0.0")
     else ()
         set(SC_IMAGE_VERSION "1.0.0")
     endif ()
