@@ -16,6 +16,7 @@ if (Git_FOUND)
     )
 
     if (GIT_RESULT EQUAL 0)
+        message(STATUS "Git tag: ${SC_IMAGE_VERSION}")
         string(REGEX REPLACE "^v" "" SC_IMAGE_VERSION "${SC_IMAGE_VERSION}")
         set(SC_IMAGE_VERSION "1.0.0")
     else ()
