@@ -47,10 +47,9 @@ file(GLOB plutovg_sources ${lunasvg_SOURCE_DIR}/plutovg/source/*.c)
 ## OpenCV ##
 # Named once: find_or_install_package() uses them here and sc-imageConfig.cmake.in
 # substitutes them, so a consumer resolves the same components.
-if (APPLE)
-    set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui)
-else ()
-    set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui calib3d)
+set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui)
+if (NOT APPLE)
+    list(APPEND SC_IMAGE_OPENCV_COMPONENTS calib3d)
 endif ()
 find_or_install_package(OpenCV libopencv-dev opencv COMPONENTS ${SC_IMAGE_OPENCV_COMPONENTS})
 
@@ -66,9 +65,7 @@ add_sc_object(svg2png
         INCLUDE_DIRS ${lunasvg_SOURCE_DIR}/include ${lunasvg_SOURCE_DIR}/plutovg/include
         LINK_LIBRARIES sc::sc-core)
 
-add_sc_object(opencv
-        LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS}
-        PUBLIC_LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS})
+add_sc_object(opencv LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS} PUBLIC_LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS})
 
 ######################
 # Exported Libraries #
