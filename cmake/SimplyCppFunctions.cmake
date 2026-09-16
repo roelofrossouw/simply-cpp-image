@@ -8,7 +8,6 @@ include(CMakeParseArguments)
 # sc-core cannot quietly replace a newer one: a module built against helpers missing
 # what its CMakeLists.txt calls fails in ways that look nothing like the cause.
 set(SC_HELPERS_VERSION 5)
-
 set(SC_VERSION_FILE "VERSION.txt")
 set(SC_VERSION_DEFAULT "1.0.0")
 
