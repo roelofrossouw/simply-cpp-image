@@ -9,6 +9,11 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Options:
 option(SC_IMAGE_BUILD_TESTS "Build simply-cpp-image tests" ${PROJECT_IS_TOP_LEVEL})
 option(FETCH_SC "Always fetch simply-cpp core rather than using an installed one" OFF)
+if (FETCH_SC)
+    # The bootstrap has to leave an installed core alone as well: find_package() there
+    # imports sc::sc-core, and the source we are about to build cannot then define it.
+    set(SC_HELPERS_USE_PACKAGE OFF)
+endif ()
 
 # The build helpers - get_sc_version(), add_sc_object(), add_sc_libraries(),
 # install_sc_module(), add_sc_test() - come from core, from an installed sc-core, the
@@ -23,18 +28,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 ################
 
 ## simply-cpp core ##
-# Unlike the other modules this one links core, not just its build helpers.
-if (NOT FETCH_SC)
-    find_package(sc-core QUIET)
-endif ()
-if (sc-core_FOUND)
-    message(STATUS "simply-cpp core installed - ${sc-core_VERSION}")
-else ()
-    message(STATUS "Fetching simply-cpp core")
-    FetchContent_Declare(sc-core GIT_REPOSITORY ${SC_HELPERS_REPOSITORY} GIT_TAG ${SC_HELPERS_TAG}
-            GIT_SHALLOW TRUE EXCLUDE_FROM_ALL)
-    FetchContent_MakeAvailable(sc-core)
-endif ()
+find_or_fetch_package(sc-core FORCE ${FETCH_SC} GIT_REPOSITORY ${SC_HELPERS_REPOSITORY} GIT_TAG ${SC_HELPERS_TAG})
 
 ## LunaSVG ##
 # Built from source rather than linked, so the consolidated libraries carry it and a
