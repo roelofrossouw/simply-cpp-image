@@ -3,6 +3,12 @@ include(CMakePackageConfigHelpers)
 include(FetchContent)
 include(CMakeParseArguments)
 
+# Bumped whenever these helpers gain or change something a module might rely on.
+# sc_bootstrap.cmake compares it against a module's own copy so an older installed
+# sc-core cannot quietly replace a newer one: a module built against helpers missing
+# what its CMakeLists.txt calls fails in ways that look nothing like the cause.
+set(SC_HELPERS_VERSION 2)
+
 set(SC_VERSION_FILE "VERSION.txt")
 set(SC_VERSION_DEFAULT "1.0.0")
 
