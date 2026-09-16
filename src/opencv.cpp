@@ -10,35 +10,27 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
-namespace
-{
-    cv::Point cvpoint(const sc::point_i& rhs)
-    {
+namespace {
+    cv::Point cvpoint(const sc::point_i &rhs) {
         return {rhs.x(), rhs.y()};
     }
 
-    cv::Point2d cvpoint(const sc::point& rhs)
-    {
+    cv::Point2d cvpoint(const sc::point &rhs) {
         return {rhs.x(), rhs.y()};
     }
 
-    cv::Size cvsize(const sc::size_i& rhs)
-    {
+    cv::Size cvsize(const sc::size_i &rhs) {
         return {rhs.width(), rhs.height()};
     }
 
-    cv::Size2d cvsize(const sc::size& rhs)
-    {
+    cv::Size2d cvsize(const sc::size &rhs) {
         return {rhs.width(), rhs.height()};
     }
 }
 
-namespace sc
-{
-    namespace impl
-    {
-        struct internals
-        {
+namespace sc {
+    namespace impl {
+        struct internals {
             cv::Mat image_mat;
             cv::Mat blob_mat;
             std::span<float> blob_data;
@@ -47,19 +39,22 @@ namespace sc
         };
     }
 
-    image::image() : impl(new impl::internals())
-    {
+    image::image() : impl(new impl::internals()) {
     }
 
-    image::image(const std::string& filename) : impl(new impl::internals())
-    {
-        impl->image_mat = cv::imread(filename);
+    image::image(const std::string &filename) : impl(new impl::internals()) {
+        const std::string png_signature{"\x89PNG\r\n\x1A\n", 8};
+        if (filename.substr(0, 8) == png_signature) {
+            std::vector<uchar> buffer(filename.begin(), filename.end());
+            impl->image_mat = cv::imdecode(buffer, cv::ImreadModes::IMREAD_COLOR);
+        } else {
+            impl->image_mat = cv::imread(filename);
+        }
         if (impl->image_mat.empty()) throw std::runtime_error{"Could not open image " + filename};
         size_ = {impl->image_mat.cols, impl->image_mat.rows};
     }
 
-    image::image(const image& copy_from) : impl(new impl::internals())
-    {
+    image::image(const image &copy_from) : impl(new impl::internals()) {
         impl->image_mat = copy_from.impl->image_mat.clone();
         impl->blob_mat = copy_from.impl->blob_mat.clone();
         impl->blob_shape = copy_from.impl->blob_shape;
@@ -71,16 +66,14 @@ namespace sc
         std::memcpy(features, copy_from.features, sizeof(features));
     }
 
-    image::image(image&& move_from) noexcept
-        : impl(move_from.impl), features{}, size_(move_from.size_)
-    {
+    image::image(image &&move_from) noexcept
+        : impl(move_from.impl), features{}, size_(move_from.size_) {
         std::memcpy(features, move_from.features, sizeof(features));
         move_from.impl = nullptr;
         move_from.size_ = {};
     }
 
-    image& image::operator=(const image& copy_from)
-    {
+    image &image::operator=(const image &copy_from) {
         if (this == &copy_from) return *this;
         image copy{copy_from};
         std::swap(impl, copy.impl);
@@ -89,8 +82,7 @@ namespace sc
         return *this;
     }
 
-    image& image::operator=(image&& move_from) noexcept
-    {
+    image &image::operator=(image &&move_from) noexcept {
         if (this == &move_from) return *this;
         delete impl;
         impl = move_from.impl;
@@ -101,13 +93,11 @@ namespace sc
         return *this;
     }
 
-    image::~image()
-    {
+    image::~image() {
         delete impl;
     }
 
-    bool image::show(int timeout, const std::string& window_name) const
-    {
+    bool image::show(int timeout, const std::string &window_name) const {
 #ifdef __APPLE__
         cv::imshow(window_name, impl->image_mat);
         if (timeout >= 0) return cv::waitKey(timeout) != 27;
@@ -115,40 +105,33 @@ namespace sc
         return true;
     }
 
-    size_i image::size() const
-    {
+    size_i image::size() const {
         return size_;
     }
 
-    size_i image::cropped_size() const
-    {
+    size_i image::cropped_size() const {
         return size_ - padding() * 2;
     }
 
-    point image::padding() const
-    {
+    point image::padding() const {
         return {impl->padding.width, impl->padding.height};
     }
 
-    bool image::empty() const
-    {
+    bool image::empty() const {
         return !impl || impl->image_mat.empty();
     }
 
-    bool image::save(const std::string& filename) const
-    {
+    bool image::save(const std::string &filename) const {
         return cv::imwrite(filename, impl->image_mat);
     }
 
-    image image::resized(const size_i new_size) const
-    {
+    image image::resized(const size_i new_size) const {
         image result{*this};
         result.resize_to(new_size);
         return result;
     }
 
-    void image::resize_to(const size_i new_size)
-    {
+    void image::resize_to(const size_i new_size) {
         if (new_size.width() <= 0 || new_size.height() <= 0)
             throw std::invalid_argument{"Image size must be positive"};
         cv::resize(impl->image_mat, impl->image_mat, cvsize(new_size), 0, 0, cv::INTER_LINEAR);
@@ -159,8 +142,7 @@ namespace sc
         impl->blob_shape.clear();
     }
 
-    image image::cropped(const rect_i& area) const
-    {
+    image image::cropped(const rect_i &area) const {
         const rect_i bounds{0, 0, size_.width(), size_.height()};
         if (area.left() < bounds.left() || area.top() < bounds.top()
             || area.right() > bounds.right() || area.bottom() > bounds.bottom()
@@ -174,24 +156,20 @@ namespace sc
         return result;
     }
 
-    void image::text(const std::string& label, const point_i pos) const
-    {
+    void image::text(const std::string &label, const point_i pos) const {
         const auto font = cv::FONT_HERSHEY_SIMPLEX;
         cv::putText(impl->image_mat, label, cvpoint(pos), font, 0.75, {255, 0, 0}, 1);
     }
 
-    void image::circle(const point_i& pos, const int radius) const
-    {
+    void image::circle(const point_i &pos, const int radius) const {
         cv::circle(impl->image_mat, cvpoint(pos), radius, {0, 255, 0}, 2);
     }
 
-    void image::setFeatures(const float* new_features)
-    {
+    void image::setFeatures(const float *new_features) {
         std::memcpy(features, new_features, sizeof(features));
     }
 
-    void image::generate_blob(const double scale, const double mean, const bool swap_rb) const
-    {
+    void image::generate_blob(const double scale, const double mean, const bool swap_rb) const {
         const cv::Scalar scalar_mean{mean, mean, mean};
         cv::dnn::blobFromImage(impl->image_mat, impl->blob_mat,
                                scale,
@@ -205,53 +183,45 @@ namespace sc
         impl->blob_data = {impl->blob_mat.ptr<float>(), impl->blob_mat.total()};
     }
 
-    float* image::blob() const
-    {
+    float *image::blob() const {
         if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
         return impl->blob_data.data();
     }
 
-    size_t image::blob_size() const
-    {
+    size_t image::blob_size() const {
         if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
         return impl->blob_data.size();
     }
 
-    const int64_t* image::blob_shape() const
-    {
+    const int64_t *image::blob_shape() const {
         if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
         return impl->blob_shape.data();
     }
 
-    size_t image::blob_shape_size() const
-    {
+    size_t image::blob_shape_size() const {
         if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
         return impl->blob_shape.size();
     }
 
-    void image::rect(const point& left_top, const point& right_bottom) const
-    {
+    void image::rect(const point &left_top, const point &right_bottom) const {
         cv::rectangle(impl->image_mat, cvpoint(left_top), cvpoint(right_bottom), {255, 0, 0}, 2);
     }
 
-    void image::rect(const rect_i& box) const
-    {
+    void image::rect(const rect_i &box) const {
         cv::rectangle(impl->image_mat, cvpoint(box.left_top()), cvpoint(box.right_bottom()), {255, 0, 0}, 2);
     }
 
-    void image::rect(const sc::rect& box) const
-    {
+    void image::rect(const sc::rect &box) const {
         cv::rectangle(impl->image_mat, cvpoint(box.left_top()), cvpoint(box.right_bottom()), {255, 0, 0}, 2);
     }
 
-    image image::warp(const std::array<point, 5>& map_from, const std::array<point, 5>& map_to, size_i to_size) const
-    {
+    image image::warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i to_size) const {
         std::vector<cv::Point2f> src;
         std::vector<cv::Point2f> dst;
         src.reserve(5);
         dst.reserve(5);
-        for (const auto& p : map_from) src.emplace_back(p.x(), p.y());
-        for (const auto& p : map_to) dst.emplace_back(p.x(), p.y());
+        for (const auto &p: map_from) src.emplace_back(p.x(), p.y());
+        for (const auto &p: map_to) dst.emplace_back(p.x(), p.y());
 
         const cv::Mat M = cv::estimateAffinePartial2D(src, dst, cv::noArray(), cv::LMEDS);
         cv::Mat warped;
@@ -267,8 +237,7 @@ namespace sc
     }
 
 
-    void image::crop()
-    {
+    void image::crop() {
         impl->image_mat = impl->image_mat(
             cv::Rect(
                 impl->padding.width,
@@ -284,46 +253,39 @@ namespace sc
         impl->blob_shape.clear();
     }
 
-    int image::snap_to_stride(const int value, const int stride)
-    {
+    int image::snap_to_stride(const int value, const int stride) {
         return (value + stride - 1) / stride * stride;
     }
 
-    size_i image::get_snap_size(int stride, const std::vector<size_i>& valid)
-    {
+    size_i image::get_snap_size(int stride, const std::vector<size_i> &valid) {
         size_i best{size_};
-        if (!valid.empty())
-        {
+        if (!valid.empty()) {
             best = valid.back();
             int bestScore = std::numeric_limits<int>::max();
-            for (const auto& candidate : valid)
-            {
+            for (const auto &candidate: valid) {
                 if (candidate.width() < size_.width()) continue;
                 if (candidate.height() < size_.height()) continue;
                 const int score = std::abs(candidate.width() - size_.width()) + std::abs(
-                    candidate.height() - size_.height());
-                if (score < bestScore)
-                {
+                                      candidate.height() - size_.height());
+                if (score < bestScore) {
                     bestScore = score;
                     best = candidate;
                 }
             }
         }
-        if (stride)
-        {
+        if (stride) {
             best.width(snap_to_stride(best.width(), stride));
             best.height(snap_to_stride(best.height(), stride));
         }
         return best;
     }
 
-    void image::snap_to_size(int stride, const std::vector<size_i>& valid)
-    {
+    void image::snap_to_size(int stride, const std::vector<size_i> &valid) {
         auto new_size = get_snap_size(stride, valid);
-        const float scale = std::min((float)new_size.width() / (float)size_.width(),
-                                     (float)new_size.height() / (float)size_.height());
-        const cv::Size resizedSize(cvRound((float)size_.width() * scale),
-                                   cvRound((float)size_.height() * scale));
+        const float scale = std::min((float) new_size.width() / (float) size_.width(),
+                                     (float) new_size.height() / (float) size_.height());
+        const cv::Size resizedSize(cvRound((float) size_.width() * scale),
+                                   cvRound((float) size_.height() * scale));
         impl->padding = {(new_size.width() - resizedSize.width) / 2, (new_size.height() - resizedSize.height) / 2};
 
         cv::resize(impl->image_mat, impl->image_mat, resizedSize, 0, 0, cv::INTER_LINEAR);
