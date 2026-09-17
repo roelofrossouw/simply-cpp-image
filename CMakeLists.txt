@@ -45,8 +45,6 @@ file(GLOB lunasvg_sources ${lunasvg_SOURCE_DIR}/source/*.cpp)
 file(GLOB plutovg_sources ${lunasvg_SOURCE_DIR}/plutovg/source/*.c)
 
 ## OpenCV ##
-# Named once: find_or_install_package() uses them here and sc-imageConfig.cmake.in
-# substitutes them, so a consumer resolves the same components.
 set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui)
 if (NOT APPLE)
     list(APPEND SC_IMAGE_OPENCV_COMPONENTS calib3d)
@@ -84,3 +82,17 @@ if (SC_IMAGE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests sc-image-test)
 endif ()
+
+############
+# Binaries #
+############
+
+add_executable(sc-image-demo apps/sc-image-demo.cpp)
+target_link_libraries(sc-image-demo PRIVATE sc::sc-core-shared sc::sc-image-shared)
+install(TARGETS sc-image-demo RUNTIME DESTINATION bin COMPONENT runtime)
+
+
+#############
+# Packaging #
+#############
+package_sc_module()
