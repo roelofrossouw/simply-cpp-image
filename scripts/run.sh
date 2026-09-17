@@ -17,10 +17,17 @@ cmake --build $build_directory -j 12 || exit
 ctest --test-dir $build_directory --output-on-failure || exit
 cmake --install $build_directory
 pushd $build_directory || exit
+rm -rf *.deb
 cpack --config CPackConfig.cmake -G DEB
+rm -rf *unknown*.deb
+rm -rf /var/www/build/repo/pool/$ubuntu_codename/*.deb
 rsync -av *.deb /var/www/build/repo/pool/$ubuntu_codename/
+rm -rf /var/www/build/repo/pool/$ubuntu_codename/*unknown*
 export GNUPGHOME=/var/www/build/signing
+# reprepro remove noble ...
+# reprepro clearvanished
 reprepro -b /var/www/build/repo includedeb $ubuntu_codename /var/www/build/repo/pool/$ubuntu_codename/*.deb
+# reprepro -b /var/www/build/repo includedeb $ubuntu_codename *.deb
 popd || exit
 
 popd || exit
