@@ -1,35 +1,68 @@
 # simply-cpp-image
 
-A small C++20 wrapper around OpenCV for loading, saving, displaying, and
-pre-processing images.
+C++20 wrapper around OpenCV for loading, saving, displaying, and pre-processing images.
 
-The public API uses the `sc` namespace and the supporting value types from
-`simply-cpp`:
+The public API uses the `sc` namespace and the supporting value types from `simply-cpp` (sc-core).
 
-```cpp
-#include <image.h>
+## Install
 
-sc::image image{"photo.jpg"};
-const auto resized = image.resized({640, 480});
-resized.save("photo-small.jpg");
+### Homebrew (macOS)
+
+```bash
+brew tap roelofrossouw/sc
+brew install simply-cpp simply-cpp-image
 ```
+
+### apt (Ubuntu)
+
+```bash
+sudo curl -fsSL https://apt.roelof.co.za/setup.sh | bash
+sudo apt -y install simply-cpp-dev simply-cpp-image-dev
+```
+
+### CMake FetchContent
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+        sc-image
+        GIT_REPOSITORY https://github.com/roelofrossouw/simply-cpp-image.git
+        GIT_TAG main # or a specific tag, e.g. v1.0.2, to stay stable
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(sc-image)
+
+add_executable(myapp main.cpp)
+target_link_libraries(myapp PRIVATE sc::sc-image)
+```
+
+sc-core is fetched automatically as part of this if it isn't already available - no separate step needed. Pass `-DFETCH_SC=ON` to always build it from source instead of using an installed one (useful when developing against an unreleased sc-core).
+
+### Git submodule
+
+```bash
+git submodule add https://github.com/roelofrossouw/simply-cpp-image.git third_party/sc-image
+```
+
+```cmake
+add_subdirectory(third_party/sc-image)
+target_link_libraries(myapp PRIVATE sc::sc-image)
+```
+
+## Dependencies
+
+- **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above). FetchContent and the git submodule route fetch/build it automatically instead.
+- **OpenCV** - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
+- **LunaSVG** - fetched and built from source automatically; nothing to install for it.
 
 ## Usage
 
-### CMake
-
-Install `simply-cpp` and this repository, then consume the exported package:
-
 ```cmake
-find_package(sc CONFIG REQUIRED)
 find_package(sc-image CONFIG REQUIRED)
 
-add_executable(example main.cpp)
-target_link_libraries(example PRIVATE sc-image::sc-image)
+add_executable(myapp main.cpp)
+target_link_libraries(myapp PRIVATE sc::sc-image)
 ```
-
-For local development only, configure with
-`-DSC_IMAGE_USE_LOCAL_SC=ON -DSC_SOURCE_DIR=/path/to/simply-cpp`.
 
 ### Loading and editing images
 
@@ -47,8 +80,7 @@ resized.text("preview", {10, 24});
 resized.save("output.jpg");
 ```
 
-`resized()` and `cropped()` return new images. `resize_to()`, `crop()`, the
-drawing methods, and `snap_to_size()` modify the current image.
+`resized()` and `cropped()` return new images. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
 ### Displaying an image
 
@@ -59,16 +91,11 @@ if (!image.show(1000, "Preview")) {
 }
 ```
 
-On Apple platforms, `show()` returns `false` when the Escape key closes the
-preview after a non-negative wait. Its return value may be intentionally
-ignored. On other platforms the current implementation does not open a
-window and returns `true`.
+On Apple platforms, `show()` returns `false` when the Escape key closes the preview after a non-negative wait. Its return value may be intentionally ignored. On other platforms the current implementation does not open a window and returns `true`.
 
 ### DNN preprocessing
 
-Call `generate_blob()` before accessing `blob()`, `blob_size()`, or the blob
-shape methods. The returned pointers refer to storage owned by the `image`
-object and can be invalidated by subsequent image processing.
+Call `generate_blob()` before accessing `blob()`, `blob_size()`, or the blob shape methods. The returned pointers refer to storage owned by the `image` object and can be invalidated by subsequent image processing.
 
 ```cpp
 image.generate_blob(1.0 / 255.0, 0.0, true);
@@ -78,28 +105,14 @@ const size_t count = image.blob_size();
 
 ## Requirements
 
-### Build requirements
+- CMake 3.22 or newer
+- A C++20 compiler
+- OpenCV with the `core`, `ml`, `imgproc`, `imgcodecs`, `dnn`, `highgui`, and (on non-Apple platforms) `calib3d` components - install it yourself before configuring if you're not using the Homebrew/apt package (see Dependencies above)
 
-1. CMake 3.28 or newer.
-1. A C++20 compiler.
-1. OpenCV with the `core`, `ml`, `imgproc`, `imgcodecs`, `dnn`, `highgui`,
-   and (on non-Apple platforms) `calib3d` components.
-
-OpenCV must be installed before configuring the project. On macOS, install it
-with Homebrew; on Debian-based Linux systems install the development package
-with `apt`.
-
-For a manual installation, examples are:
+## Building and testing
 
 ```bash
-brew install opencv
-# Debian/Ubuntu:
-sudo apt install libopencv-dev
+cmake -B build -S .
+cmake --build build -j
+ctest --test-dir build --output-on-failure
 ```
-
-### Runtime requirements
-
-OpenCV is dynamically linked. It must also be installed and discoverable on
-the target machine where an application using `sc-image` runs. The CMake
-setup can install OpenCV for the build environment, but it does not bundle,
-copy, or automatically distribute OpenCV binaries with the application.
