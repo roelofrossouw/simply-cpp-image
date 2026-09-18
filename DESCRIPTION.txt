@@ -1,0 +1,1 @@
+C++20 wrapper around OpenCV for loading, saving, and processing images
