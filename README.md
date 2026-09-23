@@ -9,14 +9,14 @@ The public API uses the `sc` namespace and the supporting value types from `simp
 ### Homebrew (macOS)
 
 ```bash
-brew tap roelofrossouw/sc
+curl -fsSL https://apt.roelof.co.za/setup.sh | bash # taps roelofrossouw/sc - same command as the apt one below
 brew install simply-cpp simply-cpp-image
 ```
 
 ### apt (Ubuntu)
 
 ```bash
-sudo curl -fsSL https://apt.roelof.co.za/setup.sh | bash
+curl -fsSL https://apt.roelof.co.za/setup.sh | bash # registers the apt repo - same command as the brew one above
 sudo apt -y install simply-cpp-dev simply-cpp-image-dev
 ```
 
