@@ -2,6 +2,7 @@
 
 include(CMakeFindDependencyMacro)
 find_dependency(sc-core)
+find_dependency(lunasvg)
 find_dependency(OpenCV CONFIG COMPONENTS @SC_IMAGE_OPENCV_COMPONENTS@)
 
 include ("${CMAKE_CURRENT_LIST_DIR}/sc-imageTargets.cmake")
