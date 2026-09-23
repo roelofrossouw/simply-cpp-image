@@ -3,11 +3,25 @@ include(CMakePackageConfigHelpers)
 include(FetchContent)
 include(CMakeParseArguments)
 
+# CMake only carries an RPATH through the build tree; without an explicit install
+# RPATH it installs executables with none at all, so a shared sc library sitting
+# next to a binary in a relocatable install (Homebrew's Cellar, an unpacked .deb)
+# cannot be found at runtime. $ORIGIN/@loader_path keep this working regardless of
+# install prefix, since bin/ and lib/ are always siblings.
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+if (APPLE)
+    set(CMAKE_INSTALL_RPATH "@loader_path/../${CMAKE_INSTALL_LIBDIR}")
+elseif (UNIX)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
+endif ()
+
 # Bumped whenever these helpers gain or change something a module might rely on.
 # sc_bootstrap.cmake compares it against a module's own copy so an older installed
 # sc-core cannot quietly replace a newer one: a module built against helpers missing
 # what its CMakeLists.txt calls fails in ways that look nothing like the cause.
-set(SC_HELPERS_VERSION 7)
+set(SC_HELPERS_VERSION 10)
 set(SC_VERSION_FILE "VERSION.txt")
 set(SC_VERSION_DEFAULT "1.0.0")
 
@@ -114,6 +128,34 @@ macro(sc_find_package_any_case package)
     endif ()
 endmacro()
 
+# sc_ensure_package_source()
+#
+# Makes sure this machine can actually install our own simply-cpp-* packages
+# (simply-cpp-models, simply-cpp-onnxruntime, ...) before find_or_install_package()
+# tries to: taps roelofrossouw/sc on Homebrew, or registers the apt.roelof.co.za
+# repo on Ubuntu - the same single command documented for people setting a machine
+# up by hand, run automatically instead. Cheap to call repeatedly: it checks
+# locally first and only reaches out when the tap/repo isn't there yet, so this
+# adds no real cost for the (far more common) third-party packages that don't
+# need it at all.
+function(sc_ensure_package_source)
+    if (APPLE)
+        execute_process(COMMAND brew --repository OUTPUT_VARIABLE SC_BREW_REPO OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+        if (NOT SC_BREW_REPO OR EXISTS "${SC_BREW_REPO}/Library/Taps/roelofrossouw/homebrew-sc")
+            return()
+        endif ()
+    elseif (UNIX AND EXISTS "/usr/bin/apt")
+        if (EXISTS "/etc/apt/sources.list.d/simply-cpp.list")
+            return()
+        endif ()
+    else ()
+        return()
+    endif ()
+
+    message(STATUS "Registering the simply-cpp package source")
+    execute_process(COMMAND bash -c "curl -fsSL https://apt.roelof.co.za/setup.sh | bash")
+endfunction()
+
 # find_or_install_package(<package> <apt name> <brew name> [COMPONENTS <component>...])
 #
 # Finds a dependency, installing it through the system package manager first if it is
@@ -136,6 +178,7 @@ macro(find_or_install_package package apt_name brew_name)
     find_package(${package} QUIET ${ARGN})
 
     if (NOT ${package}_FOUND)
+        sc_ensure_package_source()
         if (UNIX AND EXISTS "/usr/bin/apt")
             message(STATUS "${package} not found, attempting apt installation...")
             execute_process(COMMAND sudo apt -y install ${apt_name} RESULT_VARIABLE SC_PACKAGE_INSTALL_RESULT)

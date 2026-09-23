@@ -28,7 +28,11 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 ################
 
 ## simply-cpp core ##
-find_or_fetch_package(sc-core FORCE ${FETCH_SC} GIT_REPOSITORY ${SC_HELPERS_REPOSITORY} GIT_TAG ${SC_HELPERS_TAG})
+if (FETCH_SC)
+    find_or_fetch_package(sc-core FORCE ${FETCH_SC} GIT_REPOSITORY ${SC_HELPERS_REPOSITORY} GIT_TAG ${SC_HELPERS_TAG})
+else ()
+    find_or_install_package(sc-core simply-cpp-dev simply-cpp)
+endif ()
 
 ## LunaSVG ##
 # Built from source rather than linked, so the consolidated libraries carry it and a
