@@ -71,4 +71,4 @@ install(TARGETS sc-image-demo RUNTIME DESTINATION bin COMPONENT runtime)
 # Packaging #
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
-package_sc_module()
+package_sc_module(DEPENDS simply-cpp-dev simply-cpp-lunasvg)
