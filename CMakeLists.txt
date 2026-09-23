@@ -35,18 +35,10 @@ else ()
 endif ()
 
 ## LunaSVG ##
-# Built from source rather than linked, so the consolidated libraries carry it and a
-# consumer needs nothing extra.
-set(lunasvg_VERSION v3.5.0)
-message(STATUS "Fetching LunaSVG from github - ${lunasvg_VERSION}")
-set(LUNASVG_BUILD_STATIC ON CACHE BOOL "" FORCE)
-set(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(lunasvg GIT_REPOSITORY https://github.com/sammycage/lunasvg.git GIT_TAG ${lunasvg_VERSION}
-        GIT_SHALLOW TRUE EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(lunasvg)
-
-file(GLOB lunasvg_sources ${lunasvg_SOURCE_DIR}/source/*.cpp)
-file(GLOB plutovg_sources ${lunasvg_SOURCE_DIR}/plutovg/source/*.c)
+# simply-cpp-lunasvg on apt, lunasvg on brew - a real library to link against
+# instead of compiling its source into our own objects (which also can't work
+# inside Homebrew's sandboxed builds, since those refuse FetchContent).
+find_or_install_package(lunasvg simply-cpp-lunasvg lunasvg)
 
 ## OpenCV ##
 set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui)
@@ -62,10 +54,7 @@ set(SOURCE_OBJECTS include/image.h src/image.cpp)
 set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
 
-add_sc_object(svg2png
-        SOURCES ${lunasvg_sources} ${plutovg_sources}
-        INCLUDE_DIRS ${lunasvg_SOURCE_DIR}/include ${lunasvg_SOURCE_DIR}/plutovg/include
-        LINK_LIBRARIES sc::sc-core)
+add_sc_object(svg2png LINK_LIBRARIES sc::sc-core lunasvg::lunasvg PUBLIC_LINK_LIBRARIES lunasvg::lunasvg)
 
 add_sc_object(opencv LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS} PUBLIC_LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS})
 
