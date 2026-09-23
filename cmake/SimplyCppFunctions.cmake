@@ -21,7 +21,7 @@ endif ()
 # sc_bootstrap.cmake compares it against a module's own copy so an older installed
 # sc-core cannot quietly replace a newer one: a module built against helpers missing
 # what its CMakeLists.txt calls fails in ways that look nothing like the cause.
-set(SC_HELPERS_VERSION 11)
+set(SC_HELPERS_VERSION 12)
 set(SC_VERSION_FILE "VERSION.txt")
 set(SC_VERSION_DEFAULT "1.0.0")
 
@@ -403,7 +403,7 @@ function(install_sc_module)
             DESTINATION ${package_destination} COMPONENT development)
 endfunction()
 
-# package_sc_module([DEPENDS <apt package>...])
+# package_sc_module([DEPENDS <apt package>...] [DEVELOPMENT_DEPENDS <apt package>...])
 #
 # DEPENDS lists other apt packages this module's own Depends: needs beyond
 # what CPACK_DEBIAN_PACKAGE_SHLIBDEPS finds on its own - it only sees a
@@ -413,8 +413,14 @@ endfunction()
 # invisible to it regardless of whether the code actually needs it at
 # runtime. Applied to both the runtime and development components, since
 # both currently carry the actual shared library.
+#
+# DEVELOPMENT_DEPENDS adds further apt packages only to the -dev component's
+# Depends:. Use it for a *-dev package (e.g. libopencv-dev) that a consumer's
+# own find_package()/find_dependency() call needs at configure time to locate
+# a dependency's CMake config - installing that on a runtime-only machine
+# would be pointless, since nothing there ever calls find_package().
 function(package_sc_module)
-    cmake_parse_arguments(ARG "" "" "DEPENDS" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "DEPENDS;DEVELOPMENT_DEPENDS" ${ARGN})
     if (APPLE)
         set(CODENAME apple)
         set(CPACK_GENERATOR "TGZ")
@@ -453,6 +459,15 @@ function(package_sc_module)
         string(REPLACE ";" ", " ARG_DEPENDS_LIST "${ARG_DEPENDS}")
         set(CPACK_DEBIAN_RUNTIME_PACKAGE_DEPENDS "${ARG_DEPENDS_LIST}")
         set(CPACK_DEBIAN_DEVELOPMENT_PACKAGE_DEPENDS "${ARG_DEPENDS_LIST}")
+    endif ()
+    if (ARG_DEVELOPMENT_DEPENDS)
+        string(REPLACE ";" ", " ARG_DEVELOPMENT_DEPENDS_LIST "${ARG_DEVELOPMENT_DEPENDS}")
+        if (CPACK_DEBIAN_DEVELOPMENT_PACKAGE_DEPENDS)
+            set(CPACK_DEBIAN_DEVELOPMENT_PACKAGE_DEPENDS
+                    "${CPACK_DEBIAN_DEVELOPMENT_PACKAGE_DEPENDS}, ${ARG_DEVELOPMENT_DEPENDS_LIST}")
+        else ()
+            set(CPACK_DEBIAN_DEVELOPMENT_PACKAGE_DEPENDS "${ARG_DEVELOPMENT_DEPENDS_LIST}")
+        endif ()
     endif ()
     include(CPack)
 endfunction()
