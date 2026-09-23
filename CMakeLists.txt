@@ -17,6 +17,12 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 ################
 
 find_or_install_package(sc-core simply-cpp-dev simply-cpp)
+
+# lunasvg links Threads::Threads (via plutovg) but its own package config
+# doesn't declare that dependency, so a consumer has to find it too - without
+# this, whether the build happens to already have Threads::Threads cached
+# from something unrelated decides whether it configures or not.
+find_package(Threads REQUIRED)
 find_or_install_package(lunasvg simply-cpp-lunasvg lunasvg)
 
 ## OpenCV ##
