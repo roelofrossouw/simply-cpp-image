@@ -165,9 +165,9 @@ namespace sc {
         cv::circle(impl->image_mat, cvpoint(pos), radius, {0, 255, 0}, 2);
     }
 
-    void image::setFeatures(const float *new_features) {
-        std::memcpy(features, new_features, sizeof(features));
-    }
+    // void image::setFeatures(const float *new_features) {
+    //     std::memcpy(features, new_features, sizeof(features));
+    // }
 
     void image::generate_blob(const double scale, const double mean, const bool swap_rb) const {
         const cv::Scalar scalar_mean{mean, mean, mean};
