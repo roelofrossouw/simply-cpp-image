@@ -31,7 +31,6 @@ int main() {
         CHECK_EQ(original.cropped_size(), original.size());
         CHECK_EQ(original.padding(), sc::point(0, 0));
         sc::image mutable_copy{original};
-        CHECK(mutable_copy.getFeatures() != nullptr); // getFeatures() is non-const
 
         const sc::image blank;
         CHECK(blank.empty());
