@@ -80,7 +80,16 @@ resized.text("preview", {10, 24});
 resized.save("output.jpg");
 ```
 
-`resized()` and `cropped()` return new images. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
+`resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
+
+To display two equal-height images together:
+
+```cpp
+sc::image left_face{"left.jpg"};
+sc::image right_face{"right.jpg"};
+const auto comparison = sc::image::side_by_side(left_face, right_face);
+comparison.show(0, "Face comparison");
+```
 
 ### Displaying an image
 
