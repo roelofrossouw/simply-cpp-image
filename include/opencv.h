@@ -22,6 +22,9 @@ namespace sc {
         /// Transfers ownership of another image's storage.
         image(image &&move_from) noexcept;
 
+        /// Resets all metadata
+        void image_changed();
+
         ~image();
 
         /// Replaces this image with an independent copy of another image.
@@ -61,6 +64,8 @@ namespace sc {
         /// Returns a copy containing the specified rectangular area.
         image cropped(const rect_i &area) const;
 
+        void rotate(int degrees);
+
         /// Draws text onto the image in place.
         void text(const std::string &label, point_i pos) const;
 
@@ -76,6 +81,9 @@ namespace sc {
 
         /// Returns the mutable 512-value feature buffer.
         // const float *getFeatures() const { return features; }
+
+        /// Get a cropped area from an image
+        image crop(const rect_i &area) const;
 
         /// Removes the current letterbox padding in place.
         void crop();
