@@ -75,6 +75,16 @@ int main() {
         CHECK_THROWS_AS(original.resized({-5, 10}), invalid_argument);
     }
 
+    SECTION("Joining images horizontally");
+    {
+        const sc::image left{source};
+        const auto right = left.resized({320, source_height});
+        const auto joined = sc::image::side_by_side(left, right);
+        CHECK_EQ(joined.size(), sc::size_i(source_width + 320, source_height));
+        CHECK_THROWS_AS(sc::image::side_by_side(left, sc::image{}), invalid_argument);
+        CHECK_THROWS_AS(sc::image::side_by_side(left, left.resized({320, 100})), invalid_argument);
+    }
+
     SECTION("Cropping");
     {
         const sc::image original{source};

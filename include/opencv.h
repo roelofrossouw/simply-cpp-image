@@ -52,6 +52,9 @@ namespace sc {
         /// Returns a resized copy of this image.
         image resized(size_i new_size) const;
 
+        /// Returns both non-empty images joined horizontally; their heights must match.
+        static image side_by_side(const image &left, const image &right);
+
         /// Resizes this image in place.
         void resize_to(size_i new_size);
 

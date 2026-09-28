@@ -131,6 +131,17 @@ namespace sc {
         return result;
     }
 
+    image image::side_by_side(const image &left, const image &right) {
+        if (left.empty() || right.empty())
+            throw std::invalid_argument{"Cannot join empty images"};
+        if (left.size_.height() != right.size_.height())
+            throw std::invalid_argument{"Images must have equal heights"};
+        image result;
+        cv::hconcat(left.impl->image_mat, right.impl->image_mat, result.impl->image_mat);
+        result.size_ = {result.impl->image_mat.cols, result.impl->image_mat.rows};
+        return result;
+    }
+
     void image::resize_to(const size_i new_size) {
         if (new_size.width() <= 0 || new_size.height() <= 0)
             throw std::invalid_argument{"Image size must be positive"};
