@@ -93,6 +93,14 @@ namespace sc {
         return *this;
     }
 
+    void image::image_changed() {
+        impl->padding = {0, 0};
+        impl->blob_mat.release();
+        impl->blob_data = {};
+        impl->blob_shape.clear();
+        size_ = {impl->image_mat.cols, impl->image_mat.rows};
+    }
+
     image::~image() {
         delete impl;
     }
@@ -142,15 +150,12 @@ namespace sc {
         return result;
     }
 
-    void image::resize_to(const size_i new_size) {
-        if (new_size.width() <= 0 || new_size.height() <= 0)
-            throw std::invalid_argument{"Image size must be positive"};
+    void image::resize_to(size_i new_size) {
+        if (new_size.width() <= 0 && new_size.height() <= 0) throw std::invalid_argument{"Image size must be positive"};
+        if (new_size.width() <= 0) new_size.width(new_size.height() * size_.width() / size_.height());
+        if (new_size.height() <= 0) new_size.height(new_size.width() * size_.height() / size_.width());
         cv::resize(impl->image_mat, impl->image_mat, cvsize(new_size), 0, 0, cv::INTER_LINEAR);
-        size_ = new_size;
-        impl->padding = {};
-        impl->blob_mat.release();
-        impl->blob_data = {};
-        impl->blob_shape.clear();
+        image_changed();
     }
 
     image image::cropped(const rect_i &area) const {
@@ -182,12 +187,7 @@ namespace sc {
 
     void image::generate_blob(const double scale, const double mean, const bool swap_rb) const {
         const cv::Scalar scalar_mean{mean, mean, mean};
-        cv::dnn::blobFromImage(impl->image_mat, impl->blob_mat,
-                               scale,
-                               cvsize(size_),
-                               scalar_mean,
-                               swap_rb,
-                               false);
+        cv::dnn::blobFromImage(impl->image_mat, impl->blob_mat, scale, cvsize(size_), scalar_mean, swap_rb, false);
         impl->blob_shape.clear();
         impl->blob_shape.reserve(impl->blob_mat.dims);
         for (int i = 0; i < impl->blob_mat.dims; ++i) impl->blob_shape.push_back(impl->blob_mat.size[i]);
@@ -239,14 +239,25 @@ namespace sc {
         cv::warpAffine(impl->image_mat, warped, M, cvsize(to_size));
         image copy(*this);
         copy.impl->image_mat = warped;
-        copy.size_ = to_size;
-        copy.impl->padding = {};
-        copy.impl->blob_mat.release();
-        copy.impl->blob_data = {};
-        copy.impl->blob_shape.clear();
+        copy.image_changed();
         return {copy};
     }
 
+    image image::crop(const rect_i &area) const {
+        image new_image{*this};
+        new_image.impl->image_mat = new_image.impl->image_mat(cv::Rect(area.left(), area.top(), area.width(), area.height()));
+        new_image.image_changed();
+        return new_image;
+    }
+
+    void image::rotate(int degrees) {
+        while (degrees < 0) degrees += 360;
+        degrees %= 360;
+        if (degrees == 90) cv::rotate(impl->image_mat, impl->image_mat, cv::ROTATE_90_CLOCKWISE);
+        else if (degrees == 270) cv::rotate(impl->image_mat, impl->image_mat, cv::ROTATE_90_COUNTERCLOCKWISE);
+        else if (degrees == 180) cv::rotate(impl->image_mat, impl->image_mat, cv::ROTATE_180);
+        image_changed();
+    }
 
     void image::crop() {
         impl->image_mat = impl->image_mat(
@@ -257,11 +268,7 @@ namespace sc {
                 size_.height() - 2 * impl->padding.height
             )
         );
-        impl->padding = {0, 0};
-        size_ = {impl->image_mat.cols, impl->image_mat.rows};
-        impl->blob_mat.release();
-        impl->blob_data = {};
-        impl->blob_shape.clear();
+        image_changed();
     }
 
     int image::snap_to_stride(const int value, const int stride) {
@@ -304,9 +311,8 @@ namespace sc {
         cv::Rect roi(impl->padding.width, impl->padding.height, resizedSize.width, resizedSize.height);
         impl->image_mat.copyTo(canvas(roi));
         canvas.copyTo(impl->image_mat);
-        size_ = {impl->image_mat.cols, impl->image_mat.rows};
-        impl->blob_mat.release();
-        impl->blob_data = {};
-        impl->blob_shape.clear();
+        auto keep_padding = impl->padding;
+        image_changed();
+        impl->padding = keep_padding;
     }
 } // sc

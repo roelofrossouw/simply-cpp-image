@@ -71,8 +71,14 @@ int main() {
         in_place.resize_to({32, 16});
         CHECK_EQ(in_place.size(), sc::size_i(32, 16));
 
-        CHECK_THROWS_AS(original.resized({0, 10}), invalid_argument);
-        CHECK_THROWS_AS(original.resized({-5, 10}), invalid_argument);
+        // <= 0 now auto sizes (if one dim)
+        // CHECK_THROWS_AS(original.resized({0, 10}), invalid_argument);
+        // CHECK_THROWS_AS(original.resized({-5, 10}), invalid_argument);
+
+        // Both sizes can't be <= 0
+        CHECK_THROWS_AS(original.resized({0, 0}), invalid_argument);
+        CHECK_THROWS_AS(original.resized({-5, 0}), invalid_argument);
+        CHECK_THROWS_AS(original.resized({0, -5}), invalid_argument);
     }
 
     SECTION("Joining images horizontally");
@@ -138,8 +144,8 @@ int main() {
 
         CHECK_EQ(blob_source.blob_shape_size(), size_t{4});
         const auto *shape = blob_source.blob_shape();
-        CHECK_EQ(shape[0], 1L);                                    // one image
-        CHECK_EQ(shape[1], 3L);                                    // three channels
+        CHECK_EQ(shape[0], 1L); // one image
+        CHECK_EQ(shape[1], 3L); // three channels
         CHECK_EQ(shape[2], static_cast<int64_t>(blob_source.size().height()));
         CHECK_EQ(shape[3], static_cast<int64_t>(blob_source.size().width()));
         // The buffer holds exactly the product of its shape.
