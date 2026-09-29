@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <string>
 #include <vector>
 #include <sc.h>
@@ -15,6 +16,23 @@ namespace sc {
 
         /// Loads an image from a file, throwing if the file cannot be opened.
         image(const std::string &filename);
+
+        /// Creates an image from a contiguous RGB float blob in [1, 3, height, width] order.
+        /// Values are expected to be normalized to [0, 1].
+        [[nodiscard]] static image from_blob(const float *blob, int width, int height);
+
+        /// Creates an image from a contiguous single-channel or RGB float blob in
+        /// [1, channels, height, width] order. Single-channel pixels are converted to grayscale.
+        [[nodiscard]] static image from_blob(const float *blob, int width, int height, int channels);
+
+        /// Inverts generate_blob() preprocessing: source_value = blob_value / scale + mean.
+        /// Set swap_rb to the same value passed to generate_blob().
+        [[nodiscard]] static image from_blob(const float *blob, int width, int height,
+                                             double scale, double mean, bool swap_rb);
+
+        /// Inverts generate_blob() preprocessing for a single-channel or RGB blob.
+        [[nodiscard]] static image from_blob(const float *blob, int width, int height, int channels,
+                                             double scale, double mean, bool swap_rb);
 
         /// Creates an independent copy of another image.
         image(const image &copy_from);
@@ -53,7 +71,16 @@ namespace sc {
         bool save(const std::string &filename) const;
 
         /// Returns a resized copy of this image.
-        image resized(size_i new_size) const;
+        [[nodiscard]] image resized(size_i new_size) const;
+
+        /// Finds external contours and returns their points.
+        [[nodiscard]] std::vector<std::vector<point_i> > find_contours(int method = 2) const;
+
+        /// Returns each external contour's minimum-area rotated rectangle.
+        /// Rectangles with an area below minimum_area are omitted.
+        [[nodiscard]] std::vector<rotated_rect> find_min_area_rects(double minimum_area = 0, int method = 2) const;
+
+        void dilate(size_i size = {5, 3});
 
         /// Returns both non-empty images joined horizontally; their heights must match.
         static image side_by_side(const image &left, const image &right);
@@ -64,6 +91,9 @@ namespace sc {
         /// Returns a copy containing the specified rectangular area.
         image cropped(const rect_i &area) const;
 
+        /// Crops a rotated rectangle and rotates the result to make its width horizontal.
+        [[nodiscard]] image deskewed(const rotated_rect &area) const;
+
         void rotate(int degrees);
 
         /// Draws text onto the image in place.
@@ -71,6 +101,41 @@ namespace sc {
 
         /// Draws a circle onto the image in place.
         void circle(const point_i &pos, int radius) const;
+
+        /// Draws all supplied contours onto the image in place.
+        void draw_contours(const std::vector<std::vector<point_i> > &contours) const;
+
+        /// Draws a polygon onto the image in place.
+        void draw(const polygon &shape) const;
+
+        /// Draws all supplied polygons onto the image in place.
+        void draw(const std::vector<polygon> &polygons) const;
+
+        /// Draws all supplied rotated rectangles onto the image in place.
+        void draw(const std::vector<rotated_rect> &rectangles) const;
+
+        /// Draws any geometry convertible to a polygon.
+        template<typename Geometry>
+            requires requires(const Geometry &geometry) { static_cast<polygon>(geometry); }
+        void draw(const Geometry &geometry) const {
+            draw(static_cast<polygon>(geometry));
+        }
+
+        /// Draws a circle geometry in place.
+        template<Numeric T>
+        void draw(const circle_<T> &geometry) const {
+            const auto center = geometry.center();
+            this->circle(
+                {detail::polygon_coordinate(static_cast<double>(center.x())),
+                 detail::polygon_coordinate(static_cast<double>(center.y()))},
+                detail::polygon_coordinate(static_cast<double>(geometry.radius())));
+        }
+
+        /// Draws each supplied geometry in place.
+        template<typename Geometry>
+        void draw(const std::vector<Geometry> &geometries) const {
+            for (const auto &geometry: geometries) draw(geometry);
+        }
 
         /// Copies 512 feature values into the image's feature buffer.
         // void setFeatures(const float *new_features);
@@ -119,8 +184,10 @@ namespace sc {
         void rect(const sc::rect &box) const;
 
         /// Returns an affine-warped copy using five corresponding points.
-        image warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to,
-                   size_i tosize = {112, 112}) const;
+        image warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i tosize = {112, 112}) const;
+
+        /// Convert the image to a binary mask image
+        void mask(double threshold = 0.5);
 
     private:
         impl::internals *impl;
