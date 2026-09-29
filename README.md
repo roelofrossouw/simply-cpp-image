@@ -82,6 +82,17 @@ resized.save("output.jpg");
 
 `resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
+Geometry can be drawn one shape at a time or as a vector; rectangles and rotated rectangles are converted to polygons, while circles use their center and radius:
+
+```cpp
+sc::image canvas{"input.jpg"};
+canvas.draw(sc::rect{10, 10, 80, 40});
+canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15});
+canvas.draw(sc::polygon{{10, 10}, {90, 10}, {90, 50}, {10, 50}});
+canvas.draw(sc::circle{{50, 50}, 20});
+canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}});
+```
+
 To display two equal-height images together:
 
 ```cpp
@@ -110,6 +121,18 @@ Call `generate_blob()` before accessing `blob()`, `blob_size()`, or the blob sha
 image.generate_blob(1.0 / 255.0, 0.0, true);
 const float* data = image.blob();
 const size_t count = image.blob_size();
+```
+
+To create an image from a float blob, provide contiguous RGB planes in `[1, 3, height, width]` order. For a `[0, 1]` blob:
+
+```cpp
+sc::image image = sc::image::from_blob(data, width, height);
+```
+
+To reverse `generate_blob()` normalization (including centered ranges such as `[-0.5, 0.5]`), pass the same scale, mean, and channel-swap arguments used to generate it:
+
+```cpp
+sc::image image = sc::image::from_blob(data, width, height, 1.0 / 255.0, 127.5, true);
 ```
 
 ## Requirements

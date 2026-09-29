@@ -1,6 +1,7 @@
 #include <image.h>
 
 #include <filesystem>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -105,6 +106,70 @@ int main() {
         CHECK_THROWS_AS(original.cropped({0, 0, source_width + 10, source_height}), invalid_argument);
     }
 
+    SECTION("Finding and drawing contours");
+    {
+        const float pixels[] = {
+            0, 0, 0, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 1, 1, 1, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 0, 0, 0
+        };
+        auto mask = sc::image::from_blob(pixels, 5, 5, 1);
+        mask.mask(127);
+        const auto contours = mask.find_contours();
+        CHECK_EQ(contours.size(), size_t{1});
+        CHECK_EQ(contours.front().size(), size_t{4});
+        CHECK(std::ranges::find(contours.front(), sc::point_i{1, 1}) != contours.front().end());
+
+        const auto rectangles = mask.find_min_area_rects();
+        CHECK_EQ(rectangles.size(), size_t{1});
+        CHECK(mask.find_min_area_rects(4).size() == 1);
+        CHECK(mask.find_min_area_rects(4.01).empty());
+        CHECK_THROWS_AS(mask.find_min_area_rects(-1), invalid_argument);
+        const auto &rectangle = rectangles.front();
+        CHECK_NEAR(rectangle.width(), 2.0, 1.0);
+        CHECK_NEAR(rectangle.height(), 2.0, 1.0);
+        const auto rectangle_polygon = static_cast<sc::polygon>(rectangle);
+        CHECK_EQ(rectangle_polygon.size(), size_t{4});
+        CHECK(std::ranges::find(rectangle_polygon, sc::point_i{1, 1}) != rectangle_polygon.end());
+        CHECK(std::ranges::find(rectangle_polygon, sc::point_i{3, 1}) != rectangle_polygon.end());
+        CHECK(std::ranges::find(rectangle_polygon, sc::point_i{3, 3}) != rectangle_polygon.end());
+        CHECK(std::ranges::find(rectangle_polygon, sc::point_i{1, 3}) != rectangle_polygon.end());
+        const auto deskewed = mask.deskewed(rectangle);
+        CHECK(!deskewed.empty());
+        CHECK_EQ(deskewed.size(), sc::size_i(2, 2));
+        const sc::rotated_rect invalid_area{{0, 0}, {0, 0}, 0};
+        CHECK_THROWS_AS(mask.deskewed(invalid_area), invalid_argument);
+
+        const float blank_pixels[14 * 12]{};
+        const auto blank_image = sc::image::from_blob(blank_pixels, 14, 12, 1);
+        const sc::polygon tilted_rectangle{{2, 5}, {10, 1}, {12, 5}, {4, 9}};
+        const auto tilted_crop = blank_image.deskewed(static_cast<sc::rotated_rect>(tilted_rectangle));
+        CHECK_EQ(tilted_crop.size(), sc::size_i(9, 4));
+
+        const sc::polygon portrait_rectangle{{2, 1}, {4, 1}, {4, 10}, {2, 10}};
+        const auto horizontal_crop = blank_image.deskewed(static_cast<sc::rotated_rect>(portrait_rectangle));
+        CHECK_EQ(horizontal_crop.size(), sc::size_i(9, 2));
+
+        sc::image canvas{source};
+        CHECK_NOTHROW(canvas.draw_contours(contours));
+        CHECK_NOTHROW(canvas.draw_contours({}));
+        CHECK_NOTHROW(canvas.draw(sc::rect{1, 1, 2, 2}));
+        CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 1, 2, 2}));
+        CHECK_NOTHROW(canvas.draw(rectangle));
+        CHECK_NOTHROW(canvas.draw(rectangle_polygon));
+        CHECK_NOTHROW(canvas.draw(sc::circle{{2, 2}, 1.5}));
+        CHECK_NOTHROW(canvas.draw(sc::circle_i{{2, 2}, 1}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon>{}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon>{rectangle_polygon}));
+        CHECK_NOTHROW(canvas.draw(rectangles));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::rotated_rect>{}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::rect>{{1, 1, 2, 2}}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::circle>{{{2, 2}, 1.5}}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::circle_i>{{{2, 2}, 1}}));
+    }
+
     SECTION("Stride alignment");
     {
         // Rounds up to the next multiple, and leaves an exact multiple alone.
@@ -152,6 +217,51 @@ int main() {
         CHECK_EQ(blob_source.blob_size(),
                  static_cast<size_t>(shape[0] * shape[1] * shape[2] * shape[3]));
         CHECK(blob_source.blob() != nullptr);
+    }
+
+    SECTION("Creating images from float blobs");
+    {
+        // Contiguous RGB planes, each containing two pixels.
+        const float blob[] = {
+            1.0f, 0.0f,
+            0.5f, 0.25f,
+            0.0f, 1.0f
+        };
+        auto restored = sc::image::from_blob(blob, 2, 1);
+        CHECK(!restored.empty());
+        CHECK_EQ(restored.size(), sc::size_i(2, 1));
+
+        restored.generate_blob(1.0 / 255, 0, true);
+        const auto *round_trip = restored.blob();
+        for (size_t i = 0; i < 6; ++i)
+            CHECK_NEAR(round_trip[i], blob[i], 1.0 / 255);
+
+        const float centered_blob[] = {
+            0.5f, -0.5f,
+            0.0f, -0.25f,
+            -0.5f, 0.5f
+        };
+        auto centered = sc::image::from_blob(centered_blob, 2, 1, 1.0 / 255, 127.5, true);
+        centered.generate_blob(1.0 / 255, 127.5, true);
+        for (size_t i = 0; i < 6; ++i)
+            CHECK_NEAR(centered.blob()[i], centered_blob[i], 1.0 / 255);
+
+        const float grayscale_blob[] = {0.0f, 0.5f, 1.0f};
+        auto grayscale = sc::image::from_blob(grayscale_blob, 3, 1, 1);
+        CHECK_EQ(grayscale.size(), sc::size_i(3, 1));
+        grayscale.generate_blob(1.0 / 255, 0, true);
+        CHECK_EQ(grayscale.blob_shape()[1], 1L);
+        CHECK_EQ(grayscale.blob_size(), size_t{3});
+        for (size_t i = 0; i < 3; ++i) {
+            CHECK_NEAR(grayscale.blob()[i], grayscale_blob[i], 1.0 / 255);
+        }
+
+        CHECK_THROWS_AS(sc::image::from_blob(nullptr, 2, 1), invalid_argument);
+        CHECK_THROWS_AS(sc::image::from_blob(blob, 0, 1), invalid_argument);
+        CHECK_THROWS_AS(sc::image::from_blob(blob, 2, 1, 0, 127.5, true), invalid_argument);
+        CHECK_THROWS_AS(sc::image::from_blob(grayscale_blob, 3, 1, 2), invalid_argument);
+        const float invalid_blob[] = {0.0f, 0.0f, std::numeric_limits<float>::infinity()};
+        CHECK_THROWS_AS(sc::image::from_blob(invalid_blob, 1, 1), invalid_argument);
     }
 
     SECTION("Saving round trips");
