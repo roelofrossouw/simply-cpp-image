@@ -62,10 +62,16 @@ namespace sc {
         [[nodiscard]] size_i cropped_size() const;
 
         /// Returns the current letterbox padding around the image content.
-        [[nodiscard]] point padding() const;
+        [[nodiscard]] size_i padding() const;
 
         /// Returns true when no image data is loaded.
         [[nodiscard]] bool empty() const;
+
+        /// Returns the number of color channels in the image.
+        [[nodiscard]] int channels() const;
+
+        /// Converts the image between single-channel grayscale and three-channel BGR.
+        void channels(int new_channels);
 
         /// Saves the image and returns whether OpenCV reported success.
         bool save(const std::string &filename) const;
@@ -102,6 +108,15 @@ namespace sc {
         /// Draws a circle onto the image in place.
         void circle(const point_i &pos, int radius) const;
 
+        /// Draws a rectangle between two points in place.
+        void rect(const point &left_top, const point &right_bottom) const;
+
+        /// Draws a rectangle from an integer rectangle in place.
+        void rect(const rect_i &box) const;
+
+        /// Draws a rectangle from a floating-point rectangle in place.
+        void rect(const sc::rect &box) const;
+
         /// Draws all supplied contours onto the image in place.
         void draw_contours(const std::vector<std::vector<point_i> > &contours) const;
 
@@ -114,7 +129,14 @@ namespace sc {
         /// Draws all supplied rotated rectangles onto the image in place.
         void draw(const std::vector<rotated_rect> &rectangles) const;
 
-        /// Draws any geometry convertible to a polygon.
+        /// Draws a rectangle - renders identically to rect(box), not as a polygon.
+        void draw(const rect_i &box) const { rect(box); }
+
+        /// Draws a rectangle - renders identically to rect(box), not as a polygon.
+        void draw(const sc::rect &box) const { rect(box); }
+
+        /// Draws any other geometry convertible to a polygon (rotated_rect, polygon
+        /// itself, or anything with its own operator polygon()).
         template<typename Geometry>
             requires requires(const Geometry &geometry) { static_cast<polygon>(geometry); }
         void draw(const Geometry &geometry) const {
@@ -126,8 +148,10 @@ namespace sc {
         void draw(const circle_<T> &geometry) const {
             const auto center = geometry.center();
             this->circle(
-                {detail::polygon_coordinate(static_cast<double>(center.x())),
-                 detail::polygon_coordinate(static_cast<double>(center.y()))},
+                {
+                    detail::polygon_coordinate(static_cast<double>(center.x())),
+                    detail::polygon_coordinate(static_cast<double>(center.y()))
+                },
                 detail::polygon_coordinate(static_cast<double>(geometry.radius())));
         }
 
@@ -149,6 +173,8 @@ namespace sc {
 
         /// Get a cropped area from an image
         image crop(const rect_i &area) const;
+
+        void crop_to(const rect_i &area);
 
         /// Removes the current letterbox padding in place.
         void crop();
@@ -173,15 +199,6 @@ namespace sc {
 
         /// Returns the number of dimensions in the blob shape; throws if absent.
         [[nodiscard]] size_t blob_shape_size() const;
-
-        /// Draws a rectangle between two points in place.
-        void rect(const point &left_top, const point &right_bottom) const;
-
-        /// Draws a rectangle from an integer rectangle in place.
-        void rect(const rect_i &box) const;
-
-        /// Draws a rectangle from a floating-point rectangle in place.
-        void rect(const sc::rect &box) const;
 
         /// Returns an affine-warped copy using five corresponding points.
         image warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i tosize = {112, 112}) const;
