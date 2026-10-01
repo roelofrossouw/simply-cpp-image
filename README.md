@@ -93,6 +93,14 @@ canvas.draw(sc::circle{{50, 50}, 20});
 canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}});
 ```
 
+`rect()`, `circle()`, and `text()` are the same drawing methods under a shorter name for the common cases - `canvas.rect(box)` and `canvas.draw(box)` render identically, likewise for a circle:
+
+```cpp
+canvas.rect(sc::rect{10, 10, 80, 40});
+canvas.circle({50, 50}, 20);
+canvas.text("label", {10, 24});
+```
+
 To display two equal-height images together:
 
 ```cpp

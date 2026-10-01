@@ -28,6 +28,13 @@ namespace {
     cv::Size2d cvsize(const sc::size &rhs) {
         return {rhs.width(), rhs.height()};
     }
+
+    // Shared outline style for shapes (rect, rotated rect, polygon, contours). Circles
+    // get their own color so a box and a point drawn on the same image stay visually
+    // distinct (used for face landmarks over a detection box, for example).
+    const cv::Scalar outline_color{255, 0, 0};
+    const cv::Scalar circle_color{0, 255, 0};
+    constexpr int outline_thickness = 2;
 }
 
 namespace sc {
@@ -37,7 +44,7 @@ namespace sc {
             cv::Mat blob_mat;
             std::span<float> blob_data;
             std::vector<int64_t> blob_shape;
-            cv::Size padding;
+            size_i padding;
         };
     }
 
@@ -175,12 +182,29 @@ namespace sc {
         return size_ - padding() * 2;
     }
 
-    point image::padding() const {
-        return {impl->padding.width, impl->padding.height};
+    size_i image::padding() const {
+        return impl->padding;
     }
 
     bool image::empty() const {
         return !impl || impl->image_mat.empty();
+    }
+
+    int image::channels() const {
+        return empty() ? 0 : impl->image_mat.channels();
+    }
+
+    void image::channels(const int new_channels) {
+        if (new_channels != 1 && new_channels != 3)
+            throw std::invalid_argument{"Image channels must be one or three"};
+        if (empty()) throw std::invalid_argument{"Cannot convert an empty image"};
+        if (new_channels == channels()) return;
+
+        const int conversion = new_channels == 1 ? cv::COLOR_BGR2GRAY : cv::COLOR_GRAY2BGR;
+        cv::cvtColor(impl->image_mat, impl->image_mat, conversion);
+        impl->blob_mat.release();
+        impl->blob_data = {};
+        impl->blob_shape.clear();
     }
 
     bool image::save(const std::string &filename) const {
@@ -328,11 +352,11 @@ namespace sc {
 
     void image::text(const std::string &label, const point_i pos) const {
         const auto font = cv::FONT_HERSHEY_SIMPLEX;
-        cv::putText(impl->image_mat, label, cvpoint(pos), font, 0.75, {255, 0, 0}, 1);
+        cv::putText(impl->image_mat, label, cvpoint(pos), font, 0.75, outline_color, 1);
     }
 
     void image::circle(const point_i &pos, const int radius) const {
-        cv::circle(impl->image_mat, cvpoint(pos), radius, {0, 255, 0}, 2);
+        cv::circle(impl->image_mat, cvpoint(pos), radius, circle_color, outline_thickness);
     }
 
     void image::draw_contours(const std::vector<std::vector<point_i> > &contours) const {
@@ -343,7 +367,7 @@ namespace sc {
             cv_contour.reserve(contour.size());
             for (const auto &point: contour) cv_contour.push_back(cvpoint(point));
         }
-        cv::drawContours(impl->image_mat, cv_contours, -1, {255, 0, 0}, 2);
+        cv::drawContours(impl->image_mat, cv_contours, -1, outline_color, outline_thickness);
     }
 
     void image::draw(const polygon &shape) const {
@@ -358,7 +382,7 @@ namespace sc {
             cv_polygon.reserve(polygon.size());
             for (const auto &point: polygon) cv_polygon.push_back(cvpoint(point));
         }
-        cv::drawContours(impl->image_mat, cv_polygons, -1, {255, 0, 0}, 2);
+        cv::drawContours(impl->image_mat, cv_polygons, -1, outline_color, outline_thickness);
     }
 
     void image::draw(const std::vector<rotated_rect> &rectangles) const {
@@ -370,7 +394,7 @@ namespace sc {
             cv_rectangle.reserve(corners.size());
             for (const auto &point: corners) cv_rectangle.push_back(cvpoint(point));
         }
-        cv::drawContours(impl->image_mat, cv_rectangles, -1, {255, 0, 0}, 2);
+        cv::drawContours(impl->image_mat, cv_rectangles, -1, outline_color, outline_thickness);
     }
 
     // void image::setFeatures(const float *new_features) {
@@ -407,15 +431,15 @@ namespace sc {
     }
 
     void image::rect(const point &left_top, const point &right_bottom) const {
-        cv::rectangle(impl->image_mat, cvpoint(left_top), cvpoint(right_bottom), {255, 0, 0}, 2);
+        cv::rectangle(impl->image_mat, cvpoint(left_top), cvpoint(right_bottom), outline_color, outline_thickness);
     }
 
     void image::rect(const rect_i &box) const {
-        cv::rectangle(impl->image_mat, cvpoint(box.left_top()), cvpoint(box.right_bottom()), {255, 0, 0}, 2);
+        rect(static_cast<point>(box.left_top()), static_cast<point>(box.right_bottom()));
     }
 
     void image::rect(const sc::rect &box) const {
-        cv::rectangle(impl->image_mat, cvpoint(box.left_top()), cvpoint(box.right_bottom()), {255, 0, 0}, 2);
+        rect(box.left_top(), box.right_bottom());
     }
 
     image image::warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i to_size) const {
@@ -435,10 +459,14 @@ namespace sc {
         return {copy};
     }
 
+    void image::crop_to(const rect_i &area) {
+        impl->image_mat = impl->image_mat(cv::Rect(area.left(), area.top(), area.width(), area.height()));
+        image_changed();
+    }
+
     image image::crop(const rect_i &area) const {
         image new_image{*this};
-        new_image.impl->image_mat = new_image.impl->image_mat(cv::Rect(area.left(), area.top(), area.width(), area.height()));
-        new_image.image_changed();
+        new_image.crop_to(area);
         return new_image;
     }
 
@@ -453,11 +481,8 @@ namespace sc {
 
     void image::crop() {
         impl->image_mat = impl->image_mat(
-            cv::Rect(
-                impl->padding.width,
-                impl->padding.height,
-                size_.width() - 2 * impl->padding.width,
-                size_.height() - 2 * impl->padding.height
+            cv::Rect(impl->padding.width(), impl->padding.height(),
+                     size_.width() - 2 * impl->padding.width(), size_.height() - 2 * impl->padding.height()
             )
         );
         image_changed();
@@ -500,7 +525,7 @@ namespace sc {
 
         cv::resize(impl->image_mat, impl->image_mat, resizedSize, 0, 0, cv::INTER_LINEAR);
         cv::Mat canvas(new_size.height(), new_size.width(), CV_8UC3, cv::Scalar(114, 114, 114));
-        cv::Rect roi(impl->padding.width, impl->padding.height, resizedSize.width, resizedSize.height);
+        cv::Rect roi(impl->padding.width(), impl->padding.height(), resizedSize.width, resizedSize.height);
         impl->image_mat.copyTo(canvas(roi));
         canvas.copyTo(impl->image_mat);
         auto keep_padding = impl->padding;

@@ -28,6 +28,7 @@ int main() {
         const sc::image original{source};
         CHECK(!original.empty());
         CHECK_EQ(original.size(), sc::size_i(source_width, source_height));
+        CHECK_EQ(original.channels(), 3);
         // Nothing has been letterboxed yet.
         CHECK_EQ(original.cropped_size(), original.size());
         CHECK_EQ(original.padding(), sc::point(0, 0));
@@ -36,9 +37,29 @@ int main() {
         const sc::image blank;
         CHECK(blank.empty());
         CHECK_EQ(blank.size(), sc::size_i(0, 0));
+        CHECK_EQ(blank.channels(), 0);
 
         // A file that is not there is an error, not an empty image.
         CHECK_THROWS_AS(sc::image{"resource/no-such-image.jpg"}, runtime_error);
+    }
+
+    SECTION("Converting color channels");
+    {
+        sc::image converted{source};
+        const auto original_size = converted.size();
+        converted.generate_blob(1.0 / 255, 0, true);
+        CHECK_NOTHROW(converted.blob());
+        converted.channels(1);
+        CHECK_EQ(converted.channels(), 1);
+        CHECK_EQ(converted.size(), original_size);
+        CHECK_THROWS_AS(converted.blob(), runtime_error);
+
+        converted.channels(3);
+        CHECK_EQ(converted.channels(), 3);
+        CHECK_EQ(converted.size(), original_size);
+
+        CHECK_THROWS_AS(converted.channels(2), invalid_argument);
+        CHECK_THROWS_AS(sc::image{}.channels(1), invalid_argument);
     }
 
     SECTION("Copying and moving");
