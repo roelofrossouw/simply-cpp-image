@@ -68,4 +68,4 @@ install(TARGETS sc-image-demo RUNTIME DESTINATION bin COMPONENT runtime)
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
 package_sc_module(DEPENDS simply-cpp-dev simply-cpp-lunasvg
-        DEVELOPMENT_DEPENDS libopencv-dev)
+        DEV_DEPENDS libopencv-dev)
