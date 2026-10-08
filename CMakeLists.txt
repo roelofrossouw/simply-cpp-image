@@ -56,12 +56,9 @@ if (SC_IMAGE_BUILD_TESTS)
 endif ()
 
 ############
-# Binaries #
+# Examples #
 ############
-
-add_executable(sc-image-demo apps/sc-image-demo.cpp)
-target_link_libraries(sc-image-demo PRIVATE sc::sc-core-shared sc::sc-image-shared)
-install(TARGETS sc-image-demo RUNTIME DESTINATION bin COMPONENT runtime)
+add_sc_example(sc-image-demo RUN_AS_TEST LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 
 #############
 # Packaging #
