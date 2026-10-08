@@ -143,6 +143,36 @@ To reverse `generate_blob()` normalization (including centered ranges such as `[
 sc::image image = sc::image::from_blob(data, width, height, 1.0 / 255.0, 127.5, true);
 ```
 
+## Demo
+
+`sc-image-demo` is installed with the runtime package (`simply-cpp-image`), so
+you can check an installation works without the `-dev` package. It renders a
+built-in SVG to PNG, then loads, draws on, resizes and saves it, writing only to
+the temporary directory. Pass an image file to use that instead:
+
+```bash
+sc-image-demo
+sc-image-demo photo.jpg
+```
+
+Its source is `examples/sc-image-demo.cpp`; the code below is copied from it at
+configure time, so it always matches code that compiles:
+
+<!-- sc-example: examples/sc-image-demo.cpp -->
+```cpp
+sc::timer sw;
+const sc::image image{source};
+std::cout << "Loaded " << source << ", size " << image.size() << '\n';
+
+auto preview = image.resized({160, 100});
+preview.rect(sc::rect{10, 10, 140, 80});
+preview.text("simply-cpp", {20, 56});
+if (!preview.save(output)) throw std::runtime_error{"could not save " + output};
+std::cout << "Saved " << output << ", size " << preview.size() << '\n';
+std::cout << "Done after " << sw << '\n';
+```
+<!-- /sc-example -->
+
 ## Requirements
 
 - CMake 3.22 or newer
