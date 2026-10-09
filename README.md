@@ -145,10 +145,12 @@ sc::image image = sc::image::from_blob(data, width, height, 1.0 / 255.0, 127.5, 
 
 ## Demo
 
-`sc-image-demo` is installed with the runtime package (`simply-cpp-image`), so
-you can check an installation works without the `-dev` package. It renders a
-built-in SVG to PNG, then loads, draws on, resizes and saves it, writing only to
-the temporary directory. Pass an image file to use that instead:
+`sc-image-demo` renders a built-in SVG to PNG, then loads, resizes, draws on and
+saves it, showing each call with what it returned and writing only to the
+temporary directory. Pass an image file to start from that instead. It is
+installed with the runtime package (`simply-cpp-image`), so it also shows an
+installation works without the `-dev` package. It is a demonstration, not a
+test, so CTest doesn't run it:
 
 ```bash
 sc-image-demo
@@ -160,16 +162,29 @@ configure time, so it always matches code that compiles:
 
 <!-- sc-example: examples/sc-image-demo.cpp -->
 ```cpp
-sc::timer sw;
-const sc::image image{source};
-std::cout << "Loaded " << source << ", size " << image.size() << '\n';
+if (source.empty()) {
+    heading("Rendering an SVG to PNG (lunasvg)");
+    const std::string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200">)"
+                            R"(<rect width="320" height="200" fill="#2a6f97"/>)"
+                            R"(<circle cx="160" cy="100" r="70" fill="#f4d35e"/></svg>)";
+    const auto png = sc::svg2png::FromString(svg);
+    std::cout << "  sc::svg2png::FromString(svg)\n      -> " << png.size() << " bytes of PNG\n";
+    source = (folder / "sc-image-demo.png").string();
+    std::ofstream{source, std::ios::binary} << png;
+}
 
+heading("Loading and editing (OpenCV)");
+const sc::image image{source};
+std::cout << "  const sc::image image{source};   // " << source << '\n';
+SHOW(image.size());
 auto preview = image.resized({160, 100});
-preview.rect(sc::rect{10, 10, 140, 80});
-preview.text("simply-cpp", {20, 56});
-if (!preview.save(output)) throw std::runtime_error{"could not save " + output};
-std::cout << "Saved " << output << ", size " << preview.size() << '\n';
-std::cout << "Done after " << sw << '\n';
+std::cout << "  auto preview = image.resized({160, 100});\n";
+SHOW(preview.size());
+STEP(preview.rect(sc::rect{10, 10, 140, 80}));
+STEP(preview.text("simply-cpp", {20, 56}));
+
+heading("Saving");
+SHOW(preview.save(output));
 ```
 <!-- /sc-example -->
 

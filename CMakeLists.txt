@@ -58,7 +58,7 @@ endif ()
 ############
 # Examples #
 ############
-add_sc_example(sc-image-demo RUN_AS_TEST LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+add_sc_example(sc-image-demo LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 
 #############
 # Packaging #
