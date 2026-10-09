@@ -2,15 +2,15 @@
 // Each line shows a call, as written, and what it returned. Pass an image file to start from
 // that instead of the built-in SVG. Writes only to the temporary directory.
 
-#include <console.h>
-#include <image.h>
-#include <svg2png.h>
-#include <timer.h>
-
-#include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <filesystem>
+
+#include <sc.h>
+
+#include <image.h>
+#include <svg2png.h>
 
 int main(int argc, char **argv) {
     try {
