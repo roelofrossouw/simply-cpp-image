@@ -163,28 +163,28 @@ configure time, so it always matches code that compiles:
 <!-- sc-example: examples/sc-image-demo.cpp -->
 ```cpp
 if (source.empty()) {
-    heading("Rendering an SVG to PNG (lunasvg)");
+    sc::console::heading("Rendering an SVG to PNG (lunasvg)");
     const std::string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200">)"
                             R"(<rect width="320" height="200" fill="#2a6f97"/>)"
                             R"(<circle cx="160" cy="100" r="70" fill="#f4d35e"/></svg>)";
     const auto png = sc::svg2png::FromString(svg);
-    std::cout << "  sc::svg2png::FromString(svg)\n      -> " << png.size() << " bytes of PNG\n";
+    sc::console::show_text("sc::svg2png::FromString(svg)", std::to_string(png.size()) + " bytes of PNG");
     source = (folder / "sc-image-demo.png").string();
     std::ofstream{source, std::ios::binary} << png;
 }
 
-heading("Loading and editing (OpenCV)");
+sc::console::heading("Loading and editing (OpenCV)");
 const sc::image image{source};
-std::cout << "  const sc::image image{source};   // " << source << '\n';
-SHOW(image.size());
+sc::console::step("const sc::image image{source};   // " + source);
+SC_SHOW(image.size());
 auto preview = image.resized({160, 100});
-std::cout << "  auto preview = image.resized({160, 100});\n";
-SHOW(preview.size());
-STEP(preview.rect(sc::rect{10, 10, 140, 80}));
-STEP(preview.text("simply-cpp", {20, 56}));
+sc::console::step("auto preview = image.resized({160, 100});");
+SC_SHOW(preview.size());
+SC_STEP(preview.rect(sc::rect{10, 10, 140, 80}));
+SC_STEP(preview.text("simply-cpp", {20, 56}));
 
-heading("Saving");
-SHOW(preview.save(output));
+sc::console::heading("Saving");
+SC_SHOW(preview.save(output));
 ```
 <!-- /sc-example -->
 
