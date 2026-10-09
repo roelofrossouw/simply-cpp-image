@@ -188,6 +188,13 @@ SC_SHOW(preview.save(output));
 ```
 <!-- /sc-example -->
 
+More demos, installed alongside it, each runnable without arguments:
+
+| Demo | Shows |
+|---|---|
+| `sc-image-shapes` | finding outlines (`find_contours`) and fitted rotated rectangles (`find_min_area_rects`) in rendered shapes, and drawing sc-core geometry back on |
+| `sc-image-transform [image]` | resizing, cropping, rotating, straightening a tilted area (`deskewed`), grayscale, `side_by_side`, and preparing a network's input (`snap_to_size`, `generate_blob`, `from_blob`) |
+
 ## Requirements
 
 - CMake 3.22 or newer

@@ -12,7 +12,8 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 # Dependencies #
 ################
 
-find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.5.11)
+# The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
+find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.5.15)
 
 # lunasvg links Threads::Threads (via plutovg) but its own package config
 # doesn't declare that dependency, so a consumer has to find it too - without
@@ -59,6 +60,8 @@ endif ()
 # Examples #
 ############
 add_sc_example(sc-image-demo LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+add_sc_example(sc-image-shapes LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 
 #############
 # Packaging #
