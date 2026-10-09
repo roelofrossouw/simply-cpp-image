@@ -12,7 +12,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 # Dependencies #
 ################
 
-find_or_install_package(sc-core simply-cpp-dev simply-cpp)
+find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.5.11)
 
 # lunasvg links Threads::Threads (via plutovg) but its own package config
 # doesn't declare that dependency, so a consumer has to find it too - without
