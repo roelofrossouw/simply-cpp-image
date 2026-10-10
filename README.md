@@ -2,6 +2,8 @@
 
 C++20 wrapper around OpenCV for loading, saving, displaying, and pre-processing images.
 
+**Documentation:** the [simply-cpp wiki](https://github.com/roelofrossouw/simply-cpp/wiki) has an [images guide](https://github.com/roelofrossouw/simply-cpp/wiki/Images) and the [sc-image reference](https://github.com/roelofrossouw/simply-cpp/wiki/Reference-sc-image), plus [getting started](https://github.com/roelofrossouw/simply-cpp/wiki/Getting-Started) for the whole suite.
+
 The public API uses the `sc` namespace and the supporting value types from `simply-cpp` (sc-core).
 
 ## Install
