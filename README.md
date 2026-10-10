@@ -20,38 +20,9 @@ curl -fsSL https://apt.roelof.co.za/setup.sh | bash # registers the apt repo - s
 sudo apt -y install simply-cpp-dev simply-cpp-image-dev
 ```
 
-### CMake FetchContent
-
-```cmake
-include(FetchContent)
-FetchContent_Declare(
-        sc-image
-        GIT_REPOSITORY https://github.com/roelofrossouw/simply-cpp-image.git
-        GIT_TAG main # or a specific tag, e.g. v1.0.2, to stay stable
-        GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(sc-image)
-
-add_executable(myapp main.cpp)
-target_link_libraries(myapp PRIVATE sc::sc-image)
-```
-
-sc-core is fetched automatically as part of this if it isn't already available - no separate step needed. Pass `-DFETCH_SC=ON` to always build it from source instead of using an installed one (useful when developing against an unreleased sc-core).
-
-### Git submodule
-
-```bash
-git submodule add https://github.com/roelofrossouw/simply-cpp-image.git third_party/sc-image
-```
-
-```cmake
-add_subdirectory(third_party/sc-image)
-target_link_libraries(myapp PRIVATE sc::sc-image)
-```
-
 ## Dependencies
 
-- **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above). FetchContent and the git submodule route fetch/build it automatically instead.
+- **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above).
 - **OpenCV** - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
 - **LunaSVG** - fetched and built from source automatically; nothing to install for it.
 
@@ -208,3 +179,9 @@ cmake -B build -S .
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
+
+## Other ways to use it
+
+The packages above are the simplest route. sc-image can also be built from source, with
+CMake's `FetchContent` or as a git submodule (`add_subdirectory`), from
+https://github.com/roelofrossouw/simply-cpp-image. It builds sc-core too when it isn't installed (`-DFETCH_SC=ON` always does).
