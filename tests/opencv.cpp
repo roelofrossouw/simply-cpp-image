@@ -151,7 +151,7 @@ int main() {
         const auto &rectangle = rectangles.front();
         CHECK_NEAR(rectangle.width(), 2.0, 1.0);
         CHECK_NEAR(rectangle.height(), 2.0, 1.0);
-        const auto rectangle_polygon = static_cast<sc::polygon>(rectangle);
+        const auto rectangle_polygon = static_cast<sc::polygon_i>(rectangle);
         CHECK_EQ(rectangle_polygon.size(), size_t{4});
         CHECK(std::ranges::find(rectangle_polygon, sc::point_i{1, 1}) != rectangle_polygon.end());
         CHECK(std::ranges::find(rectangle_polygon, sc::point_i{3, 1}) != rectangle_polygon.end());
@@ -180,10 +180,12 @@ int main() {
         CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 1, 2, 2}));
         CHECK_NOTHROW(canvas.draw(rectangle));
         CHECK_NOTHROW(canvas.draw(rectangle_polygon));
+        CHECK_NOTHROW(canvas.draw(sc::polygon{{1.2, 1.4}, {3.6, 1.4}, {2.5, 3.5}})); // rounded to pixels
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon>{{{1.2, 1.4}, {3.6, 1.4}, {2.5, 3.5}}}));
         CHECK_NOTHROW(canvas.draw(sc::circle{{2, 2}, 1.5}));
         CHECK_NOTHROW(canvas.draw(sc::circle_i{{2, 2}, 1}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon>{}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon>{rectangle_polygon}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon_i>{}));
+        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon_i>{rectangle_polygon}));
         CHECK_NOTHROW(canvas.draw(rectangles));
         CHECK_NOTHROW(canvas.draw(std::vector<sc::rotated_rect>{}));
         CHECK_NOTHROW(canvas.draw(std::vector<sc::rect>{{1, 1, 2, 2}}));

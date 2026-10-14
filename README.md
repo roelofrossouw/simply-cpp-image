@@ -61,7 +61,7 @@ Geometry can be drawn one shape at a time or as a vector; rectangles and rotated
 sc::image canvas{"input.jpg"};
 canvas.draw(sc::rect{10, 10, 80, 40});
 canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15});
-canvas.draw(sc::polygon{{10, 10}, {90, 10}, {90, 50}, {10, 50}});
+canvas.draw(sc::polygon_i{{10, 10}, {90, 10}, {90, 50}, {10, 50}}); // sc::polygon (double) is rounded to pixels
 canvas.draw(sc::circle{{50, 50}, 20});
 canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}});
 ```

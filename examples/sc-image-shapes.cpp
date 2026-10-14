@@ -37,7 +37,7 @@ int main() {
         sc::console::step("const auto contours = shapes.find_contours();");
         SC_SHOW(contours.size());
         for (const auto &contour: contours) {
-            const auto bounds = static_cast<sc::rect_i>(sc::polygon{contour});
+            const auto bounds = static_cast<sc::rect_i>(sc::polygon_i{contour});
             sc::console::note(std::to_string(contour.size()) + " points, within " + sc::console::format(bounds));
         }
 
