@@ -28,8 +28,8 @@ int main() {
             R"svg(<rect x="50" y="60" width="110" height="50" fill="white" transform="rotate(20 105 85)"/>)svg"
             R"(<circle cx="290" cy="80" r="45" fill="white"/>)"
             R"(<polygon points="150,215 210,150 260,210" fill="white"/></svg>)");
-        const sc::image shapes{source};
-        sc::console::step("const sc::image shapes{source};   // " + source);
+        sc::image shapes{source};
+        sc::console::step("sc::image shapes{source};   // " + source);
         SC_SHOW(shapes.size());
 
         sc::console::heading("Outlines: find_contours()");
@@ -47,11 +47,11 @@ int main() {
         sc::console::step("const auto fitted = shapes.find_min_area_rects(100);");
         for (const auto &box: fitted) sc::console::note(sc::console::format(box));
 
-        sc::console::heading("Drawing on it");
-        SC_STEP(shapes.draw(fitted));                         // rotated rectangles, as outlines
-        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}));       // sc-core's circle
-        SC_STEP(shapes.draw(sc::rect{10, 10, 380, 220}));      // and rectangle
-        SC_STEP(shapes.text("3 shapes", {300, 225}));
+        sc::console::heading("Drawing on it: draw(shape, stroke, fill, width), as on an sc::pdf");
+        SC_STEP(shapes.draw(fitted, sc::color::Red, sc::color::Transparent, 2)); // rotated rectangles, as outlines
+        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, sc::color{"orange"}, sc::color{0.3, 0.3, 0.8}, 3));
+        SC_STEP(shapes.draw(sc::rect{10, 10, 380, 220}, sc::color::Green, sc::color::Transparent, 2, 12));
+        SC_STEP(shapes.draw(sc::text{"3 shapes", {300, 225}, {"sans-serif", 18}}, sc::color::White));
         SC_SHOW(shapes.save(output));
 
         sc::console::output() << "\nThe result is " << output << '\n';

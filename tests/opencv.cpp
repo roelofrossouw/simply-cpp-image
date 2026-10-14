@@ -316,5 +316,33 @@ int main() {
     error_code ignored;
     filesystem::remove_all(scratch, ignored);
 
+    SECTION("Drawing as an sc::canvas");
+    {
+        const float blank[60 * 40]{};
+        auto canvas = sc::image::from_blob(blank, 60, 40, 1);
+        canvas.draw(sc::rect{5, 5, 20, 10}, sc::color::Transparent, sc::color::White); // filled, no outline
+        canvas.draw(sc::circle{{45, 25}, 8}, sc::color::Transparent, sc::color::White);
+        const auto found = canvas.find_min_area_rects(20);
+        CHECK_EQ(found.size(), size_t{2});
+        for (const auto &shape: found) {
+            if (shape.center().x() < 30) {
+                CHECK_NEAR(std::max(shape.width(), shape.height()), 20.0, 2.0); // the 20 x 10 rectangle (OpenCV
+                CHECK_NEAR(std::min(shape.width(), shape.height()), 10.0, 2.0); // fills both edge pixels)
+            } else {
+                CHECK_NEAR(shape.width(), 16.0, 2.0); // the circle's bounding square
+            }
+        }
+
+        sc::canvas &any = canvas; // the same calls as on an sc::pdf
+        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, sc::color::Red, sc::color::Blue, 2));
+        CHECK_NOTHROW(any.draw(sc::polygon{{1.5, 1.5}, {10.5, 1.5}, {5, 9}}));
+        CHECK_NOTHROW(any.draw(sc::rect{2, 2, 30, 20}, sc::color::Black, sc::color::Transparent, 1, 5));
+        CHECK_NOTHROW(any.draw(sc::text{"Hi", {2, 30}, sc::font::bold("serif", 12)}, sc::color::White));
+        CHECK_NOTHROW(any.draw_line({0, 0}, {59, 39}, sc::color::Green, 1.5));
+
+        sc::image empty;
+        CHECK_NOTHROW(empty.draw(sc::rect{0, 0, 5, 5})); // nothing to draw on, nothing happens
+    }
+
     TEST_SUMMARY();
 }
