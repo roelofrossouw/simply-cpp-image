@@ -14,6 +14,8 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 
 # The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.5.21)
+# sc::canvas, which image implements.
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics)
 
 # lunasvg links Threads::Threads (via plutovg) but its own package config
 # doesn't declare that dependency, so a consumer has to find it too - without
@@ -36,7 +38,8 @@ set(SOURCE_OBJECTS include/image.h src/image.cpp)
 set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
 add_sc_object(svg2png LINK_LIBRARIES sc::sc-core lunasvg::lunasvg PUBLIC_LINK_LIBRARIES lunasvg::lunasvg)
-add_sc_object(opencv LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS} PUBLIC_LINK_LIBRARIES sc::sc-core ${OpenCV_LIBS})
+add_sc_object(opencv LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
+        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
 
 ######################
 # Exported Libraries #
@@ -67,4 +70,4 @@ add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image
 # Packaging #
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
-package_sc_module(DEPENDS "simply-cpp-dev (>= 1.5.21~)" simply-cpp-lunasvg DEV_DEPENDS libopencv-dev)
+package_sc_module(DEPENDS "simply-cpp-dev (>= 1.5.21~)" simply-cpp-lunasvg DEV_DEPENDS simply-cpp-graphics-dev libopencv-dev)

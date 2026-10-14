@@ -339,6 +339,14 @@ int main() {
         CHECK_NOTHROW(any.draw(sc::text{"Hi", {2, 30}, sc::font::bold("serif", 12)}, sc::color::White));
         CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::color::Green, 1.5));
 
+        auto drawing = sc::image::from_blob(blank, 60, 40, 1);
+        const sc::svg ring{R"svg(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">)svg"
+                           R"svg(<path fill-rule="evenodd" fill="#ffffff" d="M0 0 H40 V40 H0 Z M10 10 V30 H30 V10 Z"/></svg>)svg"};
+        drawing.draw(ring, sc::rect{10, 0, 40, 40}); // a square with a square hole, centred
+        const auto outer = drawing.find_min_area_rects(100);
+        CHECK_EQ(outer.size(), size_t{1}); // one outline: the hole doesn't make a second shape
+        if (!outer.empty()) CHECK_NEAR(outer[0].center().x(), 30.0, 1.5);
+
         sc::image empty;
         CHECK_NOTHROW(empty.draw(sc::rect{0, 0, 5, 5})); // nothing to draw on, nothing happens
 

@@ -425,6 +425,21 @@ namespace sc {
                     font.thickness, cv::LINE_AA);
     }
 
+    void image::paint_path(const path &shape, const color &stroke, const color &fill, const double width) {
+        if (empty()) return;
+        std::vector<std::vector<cv::Point> > closed, open;
+        for (const auto &[points, is_closed]: shape.flattened()) {
+            auto &outline = (is_closed ? closed : open).emplace_back();
+            outline.reserve(points.size());
+            for (const auto &point: points) outline.push_back(pixel(point));
+        }
+        if (fill.alpha() > 0 && !closed.empty()) cv::fillPoly(impl->image_mat, closed, cvcolor(fill, channels()), cv::LINE_AA);
+        if (width > 0) {
+            cv::polylines(impl->image_mat, closed, true, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
+            cv::polylines(impl->image_mat, open, false, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
+        }
+    }
+
     double image::measure_width(const sc::text &sample) {
         return hershey{sample.font}.size(sample.content).width;
     }
