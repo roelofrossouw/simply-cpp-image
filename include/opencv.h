@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <sc.h>
+#include <canvas.h>
 
 namespace sc {
     namespace impl {
@@ -173,6 +174,9 @@ namespace sc {
         double measure_x_height(const font &font) override;
 
         double measure_cap_height(const font &font) override;
+
+        // All of a path's outlines filled together (so holes stay holes), curves as short lines.
+        void paint_path(const path &shape, const color &stroke, const color &fill, double width) override;
 
     private:
         impl::internals *impl;
