@@ -253,7 +253,7 @@ namespace sc {
             corners.reserve(4);
             for (const auto &vertex: vertices)
                 corners.emplace_back(cvRound(vertex.x), cvRound(vertex.y));
-            rectangles.emplace_back(static_cast<rotated_rect>(polygon{std::move(corners)}));
+            rectangles.emplace_back(static_cast<rotated_rect>(polygon_i{std::move(corners)}));
         }
         return rectangles;
     }
@@ -370,11 +370,11 @@ namespace sc {
         cv::drawContours(impl->image_mat, cv_contours, -1, outline_color, outline_thickness);
     }
 
-    void image::draw(const polygon &shape) const {
-        draw(std::vector<polygon>{shape});
+    void image::draw(const polygon_i &shape) const {
+        draw(std::vector<polygon_i>{shape});
     }
 
-    void image::draw(const std::vector<polygon> &polygons) const {
+    void image::draw(const std::vector<polygon_i> &polygons) const {
         std::vector<std::vector<cv::Point> > cv_polygons;
         cv_polygons.reserve(polygons.size());
         for (const auto &polygon: polygons) {
@@ -389,7 +389,7 @@ namespace sc {
         std::vector<std::vector<cv::Point> > cv_rectangles;
         cv_rectangles.reserve(rectangles.size());
         for (const auto &rectangle: rectangles) {
-            const auto corners = static_cast<polygon>(rectangle);
+            const auto corners = static_cast<polygon_i>(rectangle);
             auto &cv_rectangle = cv_rectangles.emplace_back();
             cv_rectangle.reserve(corners.size());
             for (const auto &point: corners) cv_rectangle.push_back(cvpoint(point));

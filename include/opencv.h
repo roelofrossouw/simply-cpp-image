@@ -120,11 +120,12 @@ namespace sc {
         /// Draws all supplied contours onto the image in place.
         void draw_contours(const std::vector<std::vector<point_i> > &contours) const;
 
-        /// Draws a polygon onto the image in place.
-        void draw(const polygon &shape) const;
+        /// Draws a polygon onto the image in place. A double sc::polygon is drawn through the
+        /// template below, its points rounded to whole pixels.
+        void draw(const polygon_i &shape) const;
 
         /// Draws all supplied polygons onto the image in place.
-        void draw(const std::vector<polygon> &polygons) const;
+        void draw(const std::vector<polygon_i> &polygons) const;
 
         /// Draws all supplied rotated rectangles onto the image in place.
         void draw(const std::vector<rotated_rect> &rectangles) const;
@@ -135,12 +136,12 @@ namespace sc {
         /// Draws a rectangle - renders identically to rect(box), not as a polygon.
         void draw(const sc::rect &box) const { rect(box); }
 
-        /// Draws any other geometry convertible to a polygon (rotated_rect, polygon
-        /// itself, or anything with its own operator polygon()).
+        /// Draws any other geometry convertible to a whole-pixel polygon (rotated_rect, a double
+        /// polygon, or anything with its own operator polygon_i()).
         template<typename Geometry>
-            requires requires(const Geometry &geometry) { static_cast<polygon>(geometry); }
+            requires requires(const Geometry &geometry) { static_cast<polygon_i>(geometry); }
         void draw(const Geometry &geometry) const {
-            draw(static_cast<polygon>(geometry));
+            draw(static_cast<polygon_i>(geometry));
         }
 
         /// Draws a circle geometry in place.
