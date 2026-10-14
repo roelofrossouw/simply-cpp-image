@@ -9,7 +9,12 @@ namespace sc {
         struct internals;
     }
 
-    class image {
+    /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
+    /// canvas::draw(), the same as on an sc::pdf, in pixels. Points are rounded to whole pixels and
+    /// lines antialiased; colours are written opaque, as grey on a single-channel image. Text uses
+    /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
+    /// font.size as the text's height in pixels; other families fall back to sans-serif.
+    class image : public canvas {
     public:
         /// Creates an empty image.
         image();
@@ -43,7 +48,7 @@ namespace sc {
         /// Resets all metadata
         void image_changed();
 
-        ~image();
+        ~image() override;
 
         /// Replaces this image with an independent copy of another image.
         image &operator=(const image &copy_from);
@@ -117,50 +122,11 @@ namespace sc {
         /// Draws a rectangle from a floating-point rectangle in place.
         void rect(const sc::rect &box) const;
 
+        // The helpers above draw in the fixed annotation style (blue outlines, 2 pixels; green
+        // circles); canvas::draw() takes colours and widths.
+
         /// Draws all supplied contours onto the image in place.
         void draw_contours(const std::vector<std::vector<point_i> > &contours) const;
-
-        /// Draws a polygon onto the image in place. A double sc::polygon is drawn through the
-        /// template below, its points rounded to whole pixels.
-        void draw(const polygon_i &shape) const;
-
-        /// Draws all supplied polygons onto the image in place.
-        void draw(const std::vector<polygon_i> &polygons) const;
-
-        /// Draws all supplied rotated rectangles onto the image in place.
-        void draw(const std::vector<rotated_rect> &rectangles) const;
-
-        /// Draws a rectangle - renders identically to rect(box), not as a polygon.
-        void draw(const rect_i &box) const { rect(box); }
-
-        /// Draws a rectangle - renders identically to rect(box), not as a polygon.
-        void draw(const sc::rect &box) const { rect(box); }
-
-        /// Draws any other geometry convertible to a whole-pixel polygon (rotated_rect, a double
-        /// polygon, or anything with its own operator polygon_i()).
-        template<typename Geometry>
-            requires requires(const Geometry &geometry) { static_cast<polygon_i>(geometry); }
-        void draw(const Geometry &geometry) const {
-            draw(static_cast<polygon_i>(geometry));
-        }
-
-        /// Draws a circle geometry in place.
-        template<Numeric T>
-        void draw(const circle_<T> &geometry) const {
-            const auto center = geometry.center();
-            this->circle(
-                {
-                    detail::polygon_coordinate(static_cast<double>(center.x())),
-                    detail::polygon_coordinate(static_cast<double>(center.y()))
-                },
-                detail::polygon_coordinate(static_cast<double>(geometry.radius())));
-        }
-
-        /// Draws each supplied geometry in place.
-        template<typename Geometry>
-        void draw(const std::vector<Geometry> &geometries) const {
-            for (const auto &geometry: geometries) draw(geometry);
-        }
 
         /// Copies 512 feature values into the image's feature buffer.
         // void setFeatures(const float *new_features);
@@ -206,6 +172,15 @@ namespace sc {
 
         /// Convert the image to a binary mask image
         void mask(double threshold = 0.5);
+
+    protected:
+        void paint_polygon(const polygon &shape, const color &stroke, const color &fill, double width) override;
+
+        void paint_circle(const sc::circle &shape, const color &stroke, const color &fill, double width) override;
+
+        void paint_line(const point &from, const point &to, const color &colour, double width) override;
+
+        void paint_text(const sc::text &sample, const color &colour) override;
 
     private:
         impl::internals *impl;

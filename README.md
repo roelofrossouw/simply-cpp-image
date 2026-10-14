@@ -55,18 +55,27 @@ resized.save("output.jpg");
 
 `resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
-Geometry can be drawn one shape at a time or as a vector; rectangles and rotated rectangles are converted to polygons, while circles use their center and radius:
+An `sc::image` is an `sc::canvas` (sc-core), so shapes and text are drawn on it with the same
+calls as on an `sc::pdf`: `draw(shape, stroke = black, fill = transparent, width = 1)`, in pixels.
+Points are rounded to whole pixels and edges antialiased:
 
 ```cpp
 sc::image canvas{"input.jpg"};
-canvas.draw(sc::rect{10, 10, 80, 40});
-canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15});
-canvas.draw(sc::polygon_i{{10, 10}, {90, 10}, {90, 50}, {10, 50}}); // sc::polygon (double) is rounded to pixels
-canvas.draw(sc::circle{{50, 50}, 20});
-canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}});
+canvas.draw(sc::rect{10, 10, 80, 40});                                      // black outline, 1 pixel
+canvas.draw(sc::rect{10, 10, 80, 40}, sc::color::Red, sc::color::Transparent, 2, 6); // rounded corners
+canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15}, sc::color::Blue);
+canvas.draw(sc::polygon{{10, 10}, {90, 10}, {50, 50}}, sc::color::Black, sc::color{"gold"});
+canvas.draw(sc::circle{{50, 50}, 20}, sc::color::Transparent, sc::color::White); // filled only
+canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}}, sc::color::Green);
+canvas.draw(sc::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White);  // baseline at y = 24
+canvas.draw_line({0, 0}, {100, 100}, sc::color::Red, 2);
 ```
 
-`rect()`, `circle()`, and `text()` are the same drawing methods under a shorter name for the common cases - `canvas.rect(box)` and `canvas.draw(box)` render identically, likewise for a circle:
+Text uses OpenCV's Hershey fonts: `sans-serif` (the default) or `serif`, bold from weight 600,
+italic, with `font.size` as the text's height in pixels.
+
+`rect()`, `circle()`, `text()` and `draw_contours()` stay as quick annotation helpers in a fixed
+style (blue outlines 2 pixels wide, green circles):
 
 ```cpp
 canvas.rect(sc::rect{10, 10, 80, 40});

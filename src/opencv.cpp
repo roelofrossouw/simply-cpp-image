@@ -370,31 +370,55 @@ namespace sc {
         cv::drawContours(impl->image_mat, cv_contours, -1, outline_color, outline_thickness);
     }
 
-    void image::draw(const polygon_i &shape) const {
-        draw(std::vector<polygon_i>{shape});
+    namespace {
+        // An sc::color (0..1, RGB) as OpenCV wants it for this image: BGR(A), or grey. Opaque.
+        cv::Scalar cvcolor(const color &colour, const int channels) {
+            const double red = colour.red() * 255, green = colour.green() * 255, blue = colour.blue() * 255;
+            if (channels == 1) return cv::Scalar{0.299 * red + 0.587 * green + 0.114 * blue};
+            return cv::Scalar{blue, green, red, 255};
+        }
+
+        int thickness(const double width) { return std::max(1, static_cast<int>(std::lround(width))); }
+
+        cv::Point pixel(const point &value) {
+            return {detail::polygon_coordinate(value.x()), detail::polygon_coordinate(value.y())};
+        }
     }
 
-    void image::draw(const std::vector<polygon_i> &polygons) const {
-        std::vector<std::vector<cv::Point> > cv_polygons;
-        cv_polygons.reserve(polygons.size());
-        for (const auto &polygon: polygons) {
-            auto &cv_polygon = cv_polygons.emplace_back();
-            cv_polygon.reserve(polygon.size());
-            for (const auto &point: polygon) cv_polygon.push_back(cvpoint(point));
-        }
-        cv::drawContours(impl->image_mat, cv_polygons, -1, outline_color, outline_thickness);
+    void image::paint_polygon(const polygon &shape, const color &stroke, const color &fill, const double width) {
+        if (empty()) return;
+        std::vector<cv::Point> points;
+        points.reserve(shape.size());
+        for (const auto &point: shape) points.push_back(pixel(point));
+        const std::vector<std::vector<cv::Point> > outline{points};
+        if (fill.alpha() > 0) cv::fillPoly(impl->image_mat, outline, cvcolor(fill, channels()), cv::LINE_AA);
+        if (width > 0) cv::polylines(impl->image_mat, outline, true, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
     }
 
-    void image::draw(const std::vector<rotated_rect> &rectangles) const {
-        std::vector<std::vector<cv::Point> > cv_rectangles;
-        cv_rectangles.reserve(rectangles.size());
-        for (const auto &rectangle: rectangles) {
-            const auto corners = static_cast<polygon_i>(rectangle);
-            auto &cv_rectangle = cv_rectangles.emplace_back();
-            cv_rectangle.reserve(corners.size());
-            for (const auto &point: corners) cv_rectangle.push_back(cvpoint(point));
-        }
-        cv::drawContours(impl->image_mat, cv_rectangles, -1, outline_color, outline_thickness);
+    void image::paint_circle(const sc::circle &shape, const color &stroke, const color &fill, const double width) {
+        if (empty()) return;
+        const auto centre = pixel(shape.center());
+        const int radius = detail::polygon_coordinate(shape.radius());
+        if (fill.alpha() > 0) cv::circle(impl->image_mat, centre, radius, cvcolor(fill, channels()), cv::FILLED, cv::LINE_AA);
+        if (width > 0) cv::circle(impl->image_mat, centre, radius, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
+    }
+
+    void image::paint_line(const point &from, const point &to, const color &colour, const double width) {
+        if (empty()) return;
+        cv::line(impl->image_mat, pixel(from), pixel(to), cvcolor(colour, channels()), thickness(width), cv::LINE_AA);
+    }
+
+    void image::paint_text(const sc::text &sample, const color &colour) {
+        if (empty()) return;
+        const auto &font = sample.font;
+        const bool bold = font.weight >= 600;
+        int face = font.family == "serif" ? (bold ? cv::FONT_HERSHEY_TRIPLEX : cv::FONT_HERSHEY_COMPLEX)
+                                          : (bold ? cv::FONT_HERSHEY_DUPLEX : cv::FONT_HERSHEY_SIMPLEX);
+        if (font.italic) face |= cv::FONT_ITALIC;
+        // Strokes about a fifteenth of the size, heavier for bold.
+        const int line = std::max(1, static_cast<int>(std::lround(font.size / (bold ? 10.0 : 15.0))));
+        const double scale = cv::getFontScaleFromHeight(face, std::max(1, static_cast<int>(std::lround(font.size))), line);
+        cv::putText(impl->image_mat, sample.content, pixel(sample.position), face, scale, cvcolor(colour, channels()), line, cv::LINE_AA);
     }
 
     // void image::setFeatures(const float *new_features) {
