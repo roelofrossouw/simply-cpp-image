@@ -13,7 +13,8 @@ namespace sc {
     /// canvas::draw(), the same as on an sc::pdf, in pixels. Points are rounded to whole pixels and
     /// lines antialiased; colours are written opaque, as grey on a single-channel image. Text uses
     /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
-    /// font.size as the text's height in pixels; other families fall back to sans-serif.
+    /// font.size as the text's height in pixels; other families fall back to sans-serif. Text is
+    /// measured (canvas::text_width() and the rest) in the same font.
     class image : public canvas {
     public:
         /// Creates an empty image.
@@ -164,6 +165,14 @@ namespace sc {
         void paint_line(const point &from, const point &to, const color &colour, double width) override;
 
         void paint_text(const sc::text &sample, const color &colour) override;
+
+        // In pixels, for the Hershey font that draws it; they work on an empty image too. The
+        // x-height is two thirds of the cap height, as Hershey fonts draw it.
+        double measure_width(const sc::text &sample) override;
+
+        double measure_x_height(const font &font) override;
+
+        double measure_cap_height(const font &font) override;
 
     private:
         impl::internals *impl;
