@@ -107,25 +107,8 @@ namespace sc {
 
         void rotate(int degrees);
 
-        /// Draws text onto the image in place.
-        void text(const std::string &label, point_i pos) const;
-
-        /// Draws a circle onto the image in place.
-        void circle(const point_i &pos, int radius) const;
-
-        /// Draws a rectangle between two points in place.
-        void rect(const point &left_top, const point &right_bottom) const;
-
-        /// Draws a rectangle from an integer rectangle in place.
-        void rect(const rect_i &box) const;
-
-        /// Draws a rectangle from a floating-point rectangle in place.
-        void rect(const sc::rect &box) const;
-
-        // The helpers above draw in the fixed annotation style (blue outlines, 2 pixels; green
-        // circles); canvas::draw() takes colours and widths.
-
-        /// Draws all supplied contours onto the image in place.
+        /// Draws all supplied contours (such as find_contours() gives) onto the image in place, as
+        /// 2-pixel blue outlines.
         void draw_contours(const std::vector<std::vector<point_i> > &contours) const;
 
         /// Copies 512 feature values into the image's feature buffer.

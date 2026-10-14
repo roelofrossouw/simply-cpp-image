@@ -29,11 +29,8 @@ namespace {
         return {rhs.width(), rhs.height()};
     }
 
-    // Shared outline style for shapes (rect, rotated rect, polygon, contours). Circles
-    // get their own color so a box and a point drawn on the same image stay visually
-    // distinct (used for face landmarks over a detection box, for example).
+    // draw_contours()' outline style; canvas::draw() takes colours and widths.
     const cv::Scalar outline_color{255, 0, 0};
-    const cv::Scalar circle_color{0, 255, 0};
     constexpr int outline_thickness = 2;
 }
 
@@ -350,15 +347,6 @@ namespace sc {
         return result;
     }
 
-    void image::text(const std::string &label, const point_i pos) const {
-        const auto font = cv::FONT_HERSHEY_SIMPLEX;
-        cv::putText(impl->image_mat, label, cvpoint(pos), font, 0.75, outline_color, 1);
-    }
-
-    void image::circle(const point_i &pos, const int radius) const {
-        cv::circle(impl->image_mat, cvpoint(pos), radius, circle_color, outline_thickness);
-    }
-
     void image::draw_contours(const std::vector<std::vector<point_i> > &contours) const {
         std::vector<std::vector<cv::Point> > cv_contours;
         cv_contours.reserve(contours.size());
@@ -452,18 +440,6 @@ namespace sc {
     size_t image::blob_shape_size() const {
         if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
         return impl->blob_shape.size();
-    }
-
-    void image::rect(const point &left_top, const point &right_bottom) const {
-        cv::rectangle(impl->image_mat, cvpoint(left_top), cvpoint(right_bottom), outline_color, outline_thickness);
-    }
-
-    void image::rect(const rect_i &box) const {
-        rect(static_cast<point>(box.left_top()), static_cast<point>(box.right_bottom()));
-    }
-
-    void image::rect(const sc::rect &box) const {
-        rect(box.left_top(), box.right_bottom());
     }
 
     image image::warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i to_size) const {
