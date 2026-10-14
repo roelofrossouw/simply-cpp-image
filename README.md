@@ -48,8 +48,8 @@ if (image.empty()) {
 }
 
 const auto cropped = image.cropped({0, 0, 320, 240});
-const auto resized = cropped.resized({160, 120});
-resized.text("preview", {10, 24});
+auto resized = cropped.resized({160, 120}); // not const: drawing changes it
+resized.draw(sc::text{"preview", {10, 24}, {"sans-serif", 16}}, sc::color::White);
 resized.save("output.jpg");
 ```
 
@@ -74,14 +74,7 @@ canvas.draw_line({0, 0}, {100, 100}, sc::color::Red, 2);
 Text uses OpenCV's Hershey fonts: `sans-serif` (the default) or `serif`, bold from weight 600,
 italic, with `font.size` as the text's height in pixels.
 
-`rect()`, `circle()`, `text()` and `draw_contours()` stay as quick annotation helpers in a fixed
-style (blue outlines 2 pixels wide, green circles):
-
-```cpp
-canvas.rect(sc::rect{10, 10, 80, 40});
-canvas.circle({50, 50}, 20);
-canvas.text("label", {10, 24});
-```
+`draw_contours()` draws `find_contours()` results as 2-pixel blue outlines.
 
 To display two equal-height images together:
 
@@ -162,8 +155,8 @@ SC_SHOW(image.size());
 auto preview = image.resized({160, 100});
 sc::console::step("auto preview = image.resized({160, 100});");
 SC_SHOW(preview.size());
-SC_STEP(preview.rect(sc::rect{10, 10, 140, 80}));
-SC_STEP(preview.text("simply-cpp", {20, 56}));
+SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::color::White, sc::color::Transparent, 2));
+SC_STEP(preview.draw(sc::text{"simply-cpp", {20, 56}, sc::font::bold("sans-serif", 18)}, sc::color::White));
 
 sc::console::heading("Saving");
 SC_SHOW(preview.save(output));

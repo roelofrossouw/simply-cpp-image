@@ -304,10 +304,9 @@ int main() {
     SECTION("Drawing leaves the image usable");
     {
         sc::image canvas{source};
-        CHECK_NOTHROW(canvas.text("label", {10, 10}));
-        CHECK_NOTHROW(canvas.circle({20, 20}, 5));
-        CHECK_NOTHROW(canvas.rect(sc::rect_i{1, 2, 30, 40}));
-        CHECK_NOTHROW(canvas.rect(sc::point{1, 2}, sc::point{30, 40}));
+        CHECK_NOTHROW(canvas.draw(sc::text{"label", {10, 10}}));
+        CHECK_NOTHROW(canvas.draw(sc::circle_i{{20, 20}, 5}, sc::color::Green, sc::color::Transparent, 2));
+        CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 2, 30, 40}, sc::color::Blue, sc::color::Transparent, 2));
         // Drawing is in place and must not resize anything.
         CHECK_EQ(canvas.size(), sc::size_i(source_width, source_height));
         CHECK(!canvas.empty());
