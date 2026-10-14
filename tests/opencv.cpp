@@ -337,7 +337,7 @@ int main() {
         CHECK_NOTHROW(any.draw(sc::polygon{{1.5, 1.5}, {10.5, 1.5}, {5, 9}}));
         CHECK_NOTHROW(any.draw(sc::rect{2, 2, 30, 20}, sc::color::Black, sc::color::Transparent, 1, 5));
         CHECK_NOTHROW(any.draw(sc::text{"Hi", {2, 30}, sc::font::bold("serif", 12)}, sc::color::White));
-        CHECK_NOTHROW(any.draw_line({0, 0}, {59, 39}, sc::color::Green, 1.5));
+        CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::color::Green, 1.5));
 
         sc::image empty;
         CHECK_NOTHROW(empty.draw(sc::rect{0, 0, 5, 5})); // nothing to draw on, nothing happens
