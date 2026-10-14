@@ -68,7 +68,7 @@ canvas.draw(sc::polygon{{10, 10}, {90, 10}, {50, 50}}, sc::color::Black, sc::col
 canvas.draw(sc::circle{{50, 50}, 20}, sc::color::Transparent, sc::color::White); // filled only
 canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}}, sc::color::Green);
 canvas.draw(sc::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White);  // baseline at y = 24
-canvas.draw_line({0, 0}, {100, 100}, sc::color::Red, 2);
+canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::color::Red, 2);
 ```
 
 Text uses OpenCV's Hershey fonts: `sans-serif` (the default) or `serif`, bold from weight 600,
