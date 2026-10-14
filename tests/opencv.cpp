@@ -341,6 +341,14 @@ int main() {
 
         sc::image empty;
         CHECK_NOTHROW(empty.draw(sc::rect{0, 0, 5, 5})); // nothing to draw on, nothing happens
+
+        const sc::text label{"label", {0, 0}, {"sans-serif", 20}};
+        const double width = canvas.text_width(label);
+        CHECK_BETWEEN(width, 30.0, 80.0);
+        CHECK_NEAR(canvas.text_width(sc::text{"label", {}, {"sans-serif", 40}}), 2 * width, 0.2 * width); // within 10%: strokes step in pixels
+        CHECK_EQ(empty.text_width(label), width); // no pixels needed to measure
+        CHECK_LT(canvas.text_x_height({"sans-serif", 20}), canvas.text_cap_height({"sans-serif", 20}));
+        CHECK_BETWEEN(canvas.text_cap_height({"sans-serif", 20}), 10.0, 22.0);
     }
 
     TEST_SUMMARY();

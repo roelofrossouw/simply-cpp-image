@@ -368,6 +368,28 @@ namespace sc {
 
         int thickness(const double width) { return std::max(1, static_cast<int>(std::lround(width))); }
 
+        // The Hershey font that stands in for font: face, scale for font.size pixels high, and stroke.
+        struct hershey {
+            int face;
+            double scale;
+            int thickness;
+
+            explicit hershey(const font &font) {
+                const bool bold = font.weight >= 600;
+                face = font.family == "serif" ? (bold ? cv::FONT_HERSHEY_TRIPLEX : cv::FONT_HERSHEY_COMPLEX)
+                                              : (bold ? cv::FONT_HERSHEY_DUPLEX : cv::FONT_HERSHEY_SIMPLEX);
+                if (font.italic) face |= cv::FONT_ITALIC;
+                // Strokes about a fifteenth of the size, heavier for bold.
+                thickness = std::max(1, static_cast<int>(std::lround(font.size / (bold ? 10.0 : 15.0))));
+                scale = cv::getFontScaleFromHeight(face, std::max(1, static_cast<int>(std::lround(font.size))), thickness);
+            }
+
+            [[nodiscard]] cv::Size size(const std::string &content) const {
+                int baseline = 0;
+                return cv::getTextSize(content, face, scale, thickness, &baseline);
+            }
+        };
+
         cv::Point pixel(const point &value) {
             return {detail::polygon_coordinate(value.x()), detail::polygon_coordinate(value.y())};
         }
@@ -398,15 +420,23 @@ namespace sc {
 
     void image::paint_text(const sc::text &sample, const color &colour) {
         if (empty()) return;
-        const auto &font = sample.font;
-        const bool bold = font.weight >= 600;
-        int face = font.family == "serif" ? (bold ? cv::FONT_HERSHEY_TRIPLEX : cv::FONT_HERSHEY_COMPLEX)
-                                          : (bold ? cv::FONT_HERSHEY_DUPLEX : cv::FONT_HERSHEY_SIMPLEX);
-        if (font.italic) face |= cv::FONT_ITALIC;
-        // Strokes about a fifteenth of the size, heavier for bold.
-        const int line = std::max(1, static_cast<int>(std::lround(font.size / (bold ? 10.0 : 15.0))));
-        const double scale = cv::getFontScaleFromHeight(face, std::max(1, static_cast<int>(std::lround(font.size))), line);
-        cv::putText(impl->image_mat, sample.content, pixel(sample.position), face, scale, cvcolor(colour, channels()), line, cv::LINE_AA);
+        const hershey font{sample.font};
+        cv::putText(impl->image_mat, sample.content, pixel(sample.position), font.face, font.scale, cvcolor(colour, channels()),
+                    font.thickness, cv::LINE_AA);
+    }
+
+    double image::measure_width(const sc::text &sample) {
+        return hershey{sample.font}.size(sample.content).width;
+    }
+
+    double image::measure_x_height(const font &font) {
+        // getTextSize() gives every text the font's full height, so it can't measure an x; Hershey
+        // lowercase is two thirds of the capitals (14 of 21 font units).
+        return measure_cap_height(font) * 2 / 3;
+    }
+
+    double image::measure_cap_height(const font &font) {
+        return hershey{font}.size("H").height;
     }
 
     // void image::setFeatures(const float *new_features) {
