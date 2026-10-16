@@ -1,21 +1,29 @@
 // Renders an SVG to PNG (lunasvg), then loads it, resizes it, draws on it and saves it (OpenCV).
-// Each line shows a call, as written, and what it returned. Pass an image file to start from
-// that instead of the built-in SVG. Writes only to the temporary directory.
+// Each line shows a call, as written, and what it returned. --help lists the options: an image
+// file to start from instead of the built-in SVG. Writes only to the temporary directory.
 
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <filesystem>
 
+#include <params.h>
 #include <sc.h>
 
 #include <image.h>
 #include <svg2png.h>
 
 int main(int argc, char **argv) {
+    // The command line: -h/--help comes with sc::params, which also reports mistakes and exits.
+    const sc::params args{argc, argv, {
+        {"name", "sc-image-demo"},
+        {"description", "Renders an SVG to PNG, then loads, resizes, draws on and saves it. Writes only to the temporary directory."},
+        {"positional", {
+            {"image", {{"required", false}, {"help", "an image to start from instead of the built-in SVG"}}}}}}};
+
     try {
         const auto folder = std::filesystem::temp_directory_path();
-        std::string source = argc > 1 ? argv[1] : "";
+        std::string source = args.as<std::string>("image", "");
         const auto output = (folder / "sc-image-demo-out.jpg").string();
         sc::console::title("simply-cpp image: rendering, loading, editing and saving, each call with what it returned");
         sc::timer sw;

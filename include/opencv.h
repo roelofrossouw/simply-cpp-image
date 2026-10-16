@@ -11,8 +11,9 @@ namespace sc {
     }
 
     /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
-    /// canvas::draw(), the same as on an sc::pdf, in pixels. Points are rounded to whole pixels and
-    /// lines antialiased; colours are written opaque, as grey on a single-channel image. Text uses
+    /// draw(shape, stroke, fill), the same as on an sc::pdf, in pixels. Points are rounded to whole
+    /// pixels and lines antialiased. Colours are painted opaque (a partly transparent one as if
+    /// solid; only the PDF engines honour alpha), as grey on a single-channel image. Text uses
     /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
     /// font.size as the text's height in pixels; other families fall back to sans-serif. Text is
     /// measured (canvas::text_width() and the rest) in the same font.
@@ -21,19 +22,21 @@ namespace sc {
         /// Creates an empty image.
         image();
 
-        /// Loads an image from a file, throwing if the file cannot be opened.
+        /// Loads an image from a file as three-channel BGR, throwing std::runtime_error if it can't
+        /// be read. filename may instead be PNG data itself (as from svg2png).
         image(const std::string &filename);
 
-        /// Creates an image from a contiguous RGB float blob in [1, 3, height, width] order.
-        /// Values are expected to be normalized to [0, 1].
+        /// Creates an image from a contiguous RGB float blob in [1, 3, height, width] order, with
+        /// values in [0, 1]. Throws std::invalid_argument on a null blob, a non-positive size or
+        /// a value that isn't finite.
         [[nodiscard]] static image from_blob(const float *blob, int width, int height);
 
         /// Creates an image from a contiguous single-channel or RGB float blob in
-        /// [1, channels, height, width] order. Single-channel pixels are converted to grayscale.
+        /// [1, channels, height, width] order; one channel gives a single-channel (grey) image.
         [[nodiscard]] static image from_blob(const float *blob, int width, int height, int channels);
 
-        /// Inverts generate_blob() preprocessing: source_value = blob_value / scale + mean.
-        /// Set swap_rb to the same value passed to generate_blob().
+        /// Inverts generate_blob() preprocessing: pixel = blob_value / scale + mean, clamped to
+        /// 0..255. Pass the same scale, mean and swap_rb given to generate_blob().
         [[nodiscard]] static image from_blob(const float *blob, int width, int height,
                                              double scale, double mean, bool swap_rb);
 
@@ -41,13 +44,13 @@ namespace sc {
         [[nodiscard]] static image from_blob(const float *blob, int width, int height, int channels,
                                              double scale, double mean, bool swap_rb);
 
-        /// Creates an independent copy of another image.
+        /// Creates an independent copy of another image, blob and padding included.
         image(const image &copy_from);
 
-        /// Transfers ownership of another image's storage.
+        /// Takes another image's storage; that one is left empty(), fit only to be assigned or destroyed.
         image(image &&move_from) noexcept;
 
-        /// Resets all metadata
+        /// Call after changing the pixels: drops the padding and the blob, and rereads the size.
         void image_changed();
 
         ~image() override;
@@ -58,70 +61,70 @@ namespace sc {
         /// Replaces this image by transferring storage from another image.
         image &operator=(image &&move_from) noexcept;
 
-        /// Displays the image and returns false when Escape is pressed.
-        /// A timeout of zero waits indefinitely; negative values do not wait.
+        /// Displays the image and returns false when Escape is pressed, in milliseconds: zero waits
+        /// indefinitely, negative doesn't wait. Only on Apple platforms; elsewhere it returns true.
         bool show(int timeout = 0, const std::string &window_name = "Preview") const;
 
-        /// Returns the current image dimensions.
+        /// In pixels, padding included.
         [[nodiscard]] size_i size() const;
 
-        /// Returns the dimensions of the image content excluding padding.
+        /// The picture inside the padding.
         [[nodiscard]] size_i cropped_size() const;
 
-        /// Returns the current letterbox padding around the image content.
+        /// The letterbox padding snap_to_size() added on each side; none otherwise.
         [[nodiscard]] size_i padding() const;
 
-        /// Returns true when no image data is loaded.
         [[nodiscard]] bool empty() const;
 
-        /// Returns the number of color channels in the image.
+        /// 1 (grey) or 3 (BGR); 0 when empty.
         [[nodiscard]] int channels() const;
 
-        /// Converts the image between single-channel grayscale and three-channel BGR.
+        /// Converts between grey (1) and BGR (3) in place, dropping the blob; throws on an empty image.
         void channels(int new_channels);
 
-        /// Saves the image and returns whether OpenCV reported success.
+        /// Saves in the format the file's extension names; false if OpenCV couldn't.
         bool save(const std::string &filename) const;
 
-        /// Returns a resized copy of this image.
+        /// A resized copy; see resize_to().
         [[nodiscard]] image resized(size_i new_size) const;
 
-        /// Finds external contours: each an outline, as a polygon (draw them with canvas::draw()).
+        /// The outermost outlines of the non-zero (white) areas, each a polygon to draw with draw().
+        /// A colour image is greyed first. method is OpenCV's ContourApproximationModes (2: simple).
         [[nodiscard]] std::vector<polygon_i> find_contours(int method = 2) const;
 
-        /// Returns each external contour's minimum-area rotated rectangle.
-        /// Rectangles with an area below minimum_area are omitted.
+        /// Each find_contours() outline's smallest rotated rectangle, corners rounded to whole
+        /// pixels; those with an area under minimum_area (pixels) are left out.
         [[nodiscard]] std::vector<rotated_rect> find_min_area_rects(double minimum_area = 0, int method = 2) const;
 
+        /// Dilates in place with a rectangular kernel of size pixels.
         void dilate(size_i size = {5, 3});
 
-        /// Returns both non-empty images joined horizontally; their heights must match.
+        /// Both images joined horizontally; they must be non-empty, of equal height and channels.
         static image side_by_side(const image &left, const image &right);
 
-        /// Resizes this image in place.
+        /// Resizes in place; a width or height of 0 or less follows from the other, keeping the
+        /// aspect ratio (not both). Drops the padding and the blob.
         void resize_to(size_i new_size);
 
-        /// Returns a copy containing the specified rectangular area.
+        /// A copy of area, which must lie within the image (std::invalid_argument otherwise).
         image cropped(const rect_i &area) const;
 
-        /// Crops a rotated rectangle and rotates the result to make its width horizontal.
+        /// Cuts out a rotated rectangle and turns it level, its width horizontal; throws if it lies
+        /// outside the image.
         [[nodiscard]] image deskewed(const rotated_rect &area) const;
 
+        /// Rotates clockwise in place by a multiple of 90 degrees (negative turns anticlockwise);
+        /// other angles leave the pixels as they are.
         void rotate(int degrees);
 
-        /// Copies 512 feature values into the image's feature buffer.
-        // void setFeatures(const float *new_features);
-
-        /// Generates a DNN blob using the image's current dimensions.
-        /// The blob is replaced by later image processing.
+        /// Generates a DNN blob of floats, [1, channels, height, width]: (pixel - mean) * scale,
+        /// red and blue swapped if swap_rb. Anything that changes the image drops it.
         void generate_blob(double scale, double mean, bool swap_rb) const;
 
-        /// Returns the mutable 512-value feature buffer.
-        // const float *getFeatures() const { return features; }
-
-        /// Get a cropped area from an image
+        /// Like cropped(), but unchecked: OpenCV throws if area isn't within the image.
         image crop(const rect_i &area) const;
 
+        /// Crops in place to area, unchecked as crop().
         void crop_to(const rect_i &area);
 
         /// Removes the current letterbox padding in place.
@@ -130,10 +133,13 @@ namespace sc {
         /// Rounds a value up to the next multiple of stride.
         static int snap_to_stride(int value, int stride);
 
-        /// Calculates a stride-aligned size, optionally choosing from valid sizes.
+        /// The size snap_to_size() pads to: the valid size nearest the image's that holds it (the
+        /// last one if none does), or the image's own size without valid; then rounded up to a
+        /// multiple of stride (0: not rounded).
         size_i get_snap_size(int stride = 32, const std::vector<size_i> &valid = {});
 
-        /// Resizes and letterboxes the image to a calculated size in place.
+        /// Scales the image to fit get_snap_size(), keeping its aspect ratio, and pads it evenly with
+        /// grey (114) to that size, in place; padding() then gives the padding on each side.
         void snap_to_size(int stride = 32, const std::vector<size_i> &valid = {});
 
         /// Returns the generated DNN blob data; throws if no blob exists.
@@ -148,14 +154,15 @@ namespace sc {
         /// Returns the number of dimensions in the blob shape; throws if absent.
         [[nodiscard]] size_t blob_shape_size() const;
 
-        /// Returns an affine-warped copy using five corresponding points.
+        /// A copy warped (rotation, uniform scale and shift, fitted to five point pairs, as face
+        /// landmarks) to tosize.
         image warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i tosize = {112, 112}) const;
 
-        /// Convert the image to a binary mask image
+        /// Thresholds in place: values above threshold become 255, the rest 0, as 8-bit.
         void mask(double threshold = 0.5);
 
     protected:
-        // Strokes and fills in their colour (opaque); a stroke's width rounds to whole pixels, at
+        // Strokes and fills in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
         void paint_polygon(const polygon &shape, const sc::stroke &stroke, const sc::fill &fill) override;
 
@@ -165,8 +172,7 @@ namespace sc {
 
         void paint_text(const sc::text &sample, const sc::fill &fill) override;
 
-        // In pixels, for the Hershey font that draws it; they work on an empty image too. The
-        // x-height is two thirds of the cap height, as Hershey fonts draw it.
+        // In pixels, for the Hershey font that draws it; they work on an empty image too.
         double measure_width(const sc::text &sample) override;
 
         double measure_x_height(const font &font) override;

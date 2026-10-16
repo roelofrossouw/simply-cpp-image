@@ -3,6 +3,8 @@
 #include <string>
 
 namespace sc {
+    /// SVG to PNG with lunasvg, at the SVG's own size. A UTF-8 BOM is allowed. Both throw
+    /// std::invalid_argument when the SVG can't be read, parsed or rendered; the PNG comes as bytes.
     class svg2png {
         static void copy_data(void *target, void *source, int size);
 

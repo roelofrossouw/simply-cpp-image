@@ -1,6 +1,7 @@
 # simply-cpp-image
 
-C++20 wrapper around OpenCV for loading, saving, displaying, and pre-processing images.
+C++20 wrapper around OpenCV for loading, saving, displaying, drawing on and pre-processing images,
+plus SVG to PNG rendering (`sc::svg2png`, LunaSVG).
 
 **Documentation:** the [simply-cpp wiki](https://github.com/roelofrossouw/simply-cpp/wiki) has an [images guide](https://github.com/roelofrossouw/simply-cpp/wiki/Images) and the [sc-image reference](https://github.com/roelofrossouw/simply-cpp/wiki/Reference-sc-image), plus [getting started](https://github.com/roelofrossouw/simply-cpp/wiki/Getting-Started) for the whole suite.
 
@@ -42,10 +43,7 @@ target_link_libraries(myapp PRIVATE sc::sc-image)
 ```cpp
 #include <image.h>
 
-sc::image image{"input.jpg"};
-if (image.empty()) {
-    // Handle an empty/default image.
-}
+sc::image image{"input.jpg"}; // throws std::runtime_error if it can't be read
 
 const auto cropped = image.cropped({0, 0, 320, 240});
 auto resized = cropped.resized({160, 120}); // not const: drawing changes it
@@ -58,7 +56,8 @@ resized.save("output.jpg");
 An `sc::image` is an `sc::canvas` (sc-graphics), so shapes and text are drawn on it with the same
 calls as on an `sc::pdf`: `draw(shape, stroke, fill)`, in pixels. A stroke is a colour and a width
 (black, 1 pixel by default), a fill a colour (none by default); a colour converts to either.
-Points are rounded to whole pixels and edges antialiased:
+Points are rounded to whole pixels and edges antialiased. Colours are painted opaque: a partly
+transparent one is drawn solid (only the PDF engines honour alpha), a fully transparent one not at all:
 
 ```cpp
 sc::image canvas{"input.jpg"};
@@ -75,7 +74,8 @@ for (const auto &contour: canvas.find_contours()) canvas.draw(contour, sc::strok
 Text uses OpenCV's Hershey fonts: `sans-serif` (the default) or `serif`, bold from weight 600,
 italic, with `font.size` as the text's height in pixels.
 
-`find_contours()` gives each outline as an `sc::polygon_i`, drawn like any other polygon.
+`find_contours()` gives the outline of each white (non-zero) area as an `sc::polygon_i`, drawn like
+any other polygon.
 
 To display two equal-height images together:
 
@@ -123,7 +123,7 @@ sc::image image = sc::image::from_blob(data, width, height, 1.0 / 255.0, 127.5, 
 
 `sc-image-demo` renders a built-in SVG to PNG, then loads, resizes, draws on and
 saves it, showing each call with what it returned and writing only to the
-temporary directory. Pass an image file to start from that instead. It is
+temporary directory. Pass an image file to start from that instead; `--help` lists the options. It is
 installed with the runtime package (`simply-cpp-image`), so it also shows an
 installation works without the `-dev` package. It is a demonstration, not a
 test, so CTest doesn't run it:
@@ -164,7 +164,7 @@ SC_SHOW(preview.save(output));
 ```
 <!-- /sc-example -->
 
-More demos, installed alongside it, each runnable without arguments:
+More demos, installed alongside it, each runnable without arguments (`sc-image-transform` also takes `--help`):
 
 | Demo | Shows |
 |---|---|
