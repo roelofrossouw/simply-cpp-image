@@ -383,8 +383,10 @@ namespace sc {
         }
     }
 
-    void image::paint_polygon(const polygon &shape, const sc::stroke &stroke, const sc::fill &fill) {
+    void image::paint_polygon(const polygon &shape, const sc::appearance &look) {
         if (empty()) return;
+        const auto &stroke = look.stroke();
+        const auto &fill = look.fill();
         std::vector<cv::Point> points;
         points.reserve(shape.size());
         for (const auto &point: shape) points.push_back(pixel(point));
@@ -393,8 +395,10 @@ namespace sc {
         if (stroke.visible()) cv::polylines(impl->image_mat, outline, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
     }
 
-    void image::paint_circle(const sc::circle &shape, const sc::stroke &stroke, const sc::fill &fill) {
+    void image::paint_circle(const sc::circle &shape, const sc::appearance &look) {
         if (empty()) return;
+        const auto &stroke = look.stroke();
+        const auto &fill = look.fill();
         const auto centre = pixel(shape.center());
         const int radius = detail::polygon_coordinate(shape.radius());
         if (fill.visible()) cv::circle(impl->image_mat, centre, radius, cvcolor(fill.colour(), channels()), cv::FILLED, cv::LINE_AA);
@@ -413,8 +417,10 @@ namespace sc {
                     font.thickness, cv::LINE_AA);
     }
 
-    void image::paint_path(const path &shape, const sc::stroke &stroke, const sc::fill &fill) {
+    void image::paint_path(const path &shape, const sc::appearance &look) {
         if (empty()) return;
+        const auto &stroke = look.stroke();
+        const auto &fill = look.fill();
         std::vector<std::vector<cv::Point> > closed, open;
         for (const auto &[points, is_closed]: shape.flattened()) {
             auto &outline = (is_closed ? closed : open).emplace_back();

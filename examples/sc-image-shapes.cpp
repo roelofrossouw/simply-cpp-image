@@ -47,12 +47,12 @@ int main() {
         sc::console::step("const auto fitted = shapes.find_min_area_rects(100);");
         for (const auto &box: fitted) sc::console::note(sc::console::format(box));
 
-        sc::console::heading("Drawing on it: draw(shape, stroke, fill), as on an sc::pdf");
+        sc::console::heading("Drawing on it: draw(shape, appearance), as on an sc::pdf");
         for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2}); // rotated rectangles, as outlines
         sc::console::step("for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2});");
         for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2}); // the outlines found
         sc::console::step("for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2});");
-        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, sc::stroke{sc::color{"orange"}, 3}, sc::color{0.3, 0.3, 0.8}));
+        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, {sc::stroke{sc::color{"orange"}, 3}, sc::color{0.3, 0.3, 0.8}}));
         SC_STEP(shapes.draw(sc::rounded_rect{sc::rect{10, 10, 380, 220}, 12}, sc::stroke{sc::color::Green, 2}));
         SC_STEP(shapes.draw(sc::text{"3 shapes", {300, 225}, {"sans-serif", 18}}, sc::color::White));
         SC_SHOW(shapes.save(output));

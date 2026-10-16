@@ -183,7 +183,7 @@ int main() {
         CHECK_NOTHROW(canvas.draw(sc::circle{{2, 2}, 1.5}));
         CHECK_NOTHROW(canvas.draw(sc::circle_i{{2, 2}, 1}));
         for (const auto &each: rectangles) CHECK_NOTHROW(canvas.draw(each));
-        CHECK_NOTHROW(canvas.draw(sc::rounded_rect{sc::rect{0, 0, 4, 4}, 1}, sc::color::Red, sc::color::Blue));
+        CHECK_NOTHROW(canvas.draw(sc::rounded_rect{sc::rect{0, 0, 4, 4}, 1}, {sc::color::Red, sc::color::Blue}));
     }
 
     SECTION("Stride alignment");
@@ -312,8 +312,8 @@ int main() {
     {
         const float blank[60 * 40]{};
         auto canvas = sc::image::from_blob(blank, 60, 40, 1);
-        canvas.draw(sc::rect{5, 5, 20, 10}, sc::stroke::none(), sc::color::White); // filled, no outline
-        canvas.draw(sc::circle{{45, 25}, 8}, sc::stroke::none(), sc::color::White);
+        canvas.draw(sc::rect{5, 5, 20, 10}, sc::appearance::filled(sc::color::White)); // filled, no outline
+        canvas.draw(sc::circle{{45, 25}, 8}, sc::appearance::filled(sc::color::White));
         const auto found = canvas.find_min_area_rects(20);
         CHECK_EQ(found.size(), size_t{2});
         for (const auto &shape: found) {
@@ -326,7 +326,7 @@ int main() {
         }
 
         sc::canvas &any = canvas; // the same calls as on an sc::pdf
-        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, sc::stroke{sc::color::Red, 2}, sc::color::Blue));
+        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, {sc::stroke{sc::color::Red, 2}, sc::color::Blue}));
         CHECK_NOTHROW(any.draw(sc::polygon{{1.5, 1.5}, {10.5, 1.5}, {5, 9}}));
         CHECK_NOTHROW(any.draw(sc::rounded_rect{sc::rect{2, 2, 30, 20}, 5}));
         CHECK_NOTHROW(any.draw(sc::text{"Hi", {2, 30}, sc::font::bold("serif", 12)}, sc::color::White));
