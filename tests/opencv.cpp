@@ -1,5 +1,6 @@
 #include <image.h>
 
+#include <cmath>
 #include <filesystem>
 #include <limits>
 #include <stdexcept>
@@ -16,6 +17,13 @@ namespace {
 
     // show() opens a window and waits, so it is left out entirely: a headless server
     // has nothing to display on, and the old test bailed out at the first call.
+
+    // push_clip() and pop_clip() are a canvas's primitives, protected: a test reaches them so.
+    struct clipping_image : sc::image {
+        using sc::image::image;
+        using sc::image::push_clip;
+        using sc::image::pop_clip;
+    };
 }
 
 int main() {
@@ -307,6 +315,47 @@ int main() {
 
     error_code ignored;
     filesystem::remove_all(scratch, ignored);
+
+    SECTION("A blank image, and its bytes");
+    {
+        const sc::image blank{sc::size_i{30, 20}, sc::color::Red};
+        CHECK_EQ(blank.size(), sc::size_i(30, 20));
+        CHECK_EQ(blank.channels(), 3);
+        const auto png = blank.encoded();
+        CHECK_EQ(sc::image{png}.size(), sc::size_i(30, 20)); // PNG bytes load back
+        CHECK(!blank.encoded("jpg", 50).empty());
+        CHECK_THROWS_AS(blank.encoded("nope"), std::runtime_error);
+        CHECK_THROWS_AS((sc::image{sc::size_i{0, 5}, sc::color::Red}), std::invalid_argument);
+    }
+
+    SECTION("Clipping: only what's inside the clip is painted, clips nest");
+    {
+        sc::image canvas{sc::size_i{100, 100}, sc::color::Black};
+        sc::drawing clipped{{100, 100}};
+        clipped.add(sc::rect{10, 10, 80, 80}, sc::appearance::filled(sc::color::White), to_path(sc::circle{{50, 50}, 20}));
+        canvas.draw(clipped);
+        auto found = canvas.find_min_area_rects(100);
+        CHECK_EQ(found.size(), size_t{1});
+        if (!found.empty()) { // the circle's square, not the rect's
+            CHECK_NEAR(found[0].width(), 40.0, 3.0);
+            CHECK_NEAR(found[0].height(), 40.0, 3.0);
+        }
+
+        // A clip inside another: only their overlap; popping one goes back to the other.
+        clipping_image nested{sc::size_i{100, 100}, sc::color::Black};
+        nested.push_clip(to_path(sc::rect{0, 0, 60, 100}));
+        nested.push_clip(to_path(sc::rect{40, 0, 60, 100}));
+        nested.draw(sc::rect{0, 0, 100, 50}, sc::appearance::filled(sc::color::White));
+        nested.pop_clip();
+        nested.draw(sc::rect{0, 60, 100, 40}, sc::appearance::filled(sc::color::White));
+        nested.pop_clip();
+        found = nested.find_min_area_rects(100);
+        CHECK_EQ(found.size(), size_t{2});
+        for (const auto &shape: found) {
+            if (shape.center().y() < 50) CHECK_NEAR(std::min(shape.width(), shape.height()), 20.0, 3.0); // 40 to 60
+            else CHECK_NEAR(std::max(shape.width(), shape.height()), 60.0, 3.0);                       // 0 to 60
+        }
+    }
 
     SECTION("Drawing as an sc::canvas");
     {

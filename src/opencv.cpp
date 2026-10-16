@@ -41,6 +41,7 @@ namespace sc {
             std::span<float> blob_data;
             std::vector<int64_t> blob_shape;
             size_i padding;
+            std::vector<cv::Mat> clips; // pushed clip masks, each already within the one before
         };
     }
 
@@ -74,8 +75,12 @@ namespace sc {
         if (extension == ".jpg" || extension == ".jpeg") settings = {cv::IMWRITE_JPEG_QUALITY, q};
         if (extension == ".webp") settings = {cv::IMWRITE_WEBP_QUALITY, q};
         std::vector<uchar> bytes;
-        if (impl->image_mat.empty() || !cv::imencode(extension, impl->image_mat, bytes, settings))
-            throw std::runtime_error{"sc::image: can't encode as " + type};
+        bool done = false;
+        try {
+            done = !impl->image_mat.empty() && cv::imencode(extension, impl->image_mat, bytes, settings);
+        } catch (const cv::Exception &) { // an extension OpenCV has no encoder for
+        }
+        if (!done) throw std::runtime_error{"sc::image: can't encode as " + type};
         return {bytes.begin(), bytes.end()};
     }
 
@@ -415,6 +420,30 @@ namespace sc {
         }
     }
 
+    namespace {
+        // Runs paint on the image, or, inside a clip, on a copy that's blended back through the
+        // clip's mask (antialiased, so the clip's edge is smooth).
+        template<typename Paint>
+        void clipped(impl::internals &in, Paint paint) {
+            if (in.clips.empty() || in.clips.back().size() != in.image_mat.size()) {
+                paint(in.image_mat);
+                return;
+            }
+            const cv::Mat &mask = in.clips.back();
+            const cv::Rect area = cv::boundingRect(mask);
+            if (area.empty()) return; // the clip shows nothing
+            cv::Mat copy = in.image_mat.clone();
+            paint(copy);
+            cv::Mat alpha, painted, under;
+            mask(area).convertTo(alpha, CV_32F, 1.0 / 255);
+            if (in.image_mat.channels() > 1) cv::merge(std::vector<cv::Mat>(in.image_mat.channels(), alpha), alpha);
+            copy(area).convertTo(painted, CV_32F);
+            in.image_mat(area).convertTo(under, CV_32F);
+            cv::Mat blended = under + (painted - under).mul(alpha);
+            blended.convertTo(in.image_mat(area), in.image_mat.type());
+        }
+    }
+
     void image::paint_polygon(const polygon &shape, const sc::appearance &look) {
         if (empty()) return;
         const auto &stroke = look.stroke();
@@ -423,8 +452,10 @@ namespace sc {
         points.reserve(shape.size());
         for (const auto &point: shape) points.push_back(pixel(point));
         const std::vector<std::vector<cv::Point> > outline{points};
-        if (fill.visible()) cv::fillPoly(impl->image_mat, outline, cvcolor(fill.colour(), channels()), cv::LINE_AA);
-        if (stroke.visible()) cv::polylines(impl->image_mat, outline, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        clipped(*impl, [&](cv::Mat &target) {
+            if (fill.visible()) cv::fillPoly(target, outline, cvcolor(fill.colour(), channels()), cv::LINE_AA);
+            if (stroke.visible()) cv::polylines(target, outline, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        });
     }
 
     void image::paint_circle(const sc::circle &shape, const sc::appearance &look) {
@@ -433,20 +464,26 @@ namespace sc {
         const auto &fill = look.fill();
         const auto centre = pixel(shape.center());
         const int radius = detail::polygon_coordinate(shape.radius());
-        if (fill.visible()) cv::circle(impl->image_mat, centre, radius, cvcolor(fill.colour(), channels()), cv::FILLED, cv::LINE_AA);
-        if (stroke.visible()) cv::circle(impl->image_mat, centre, radius, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        clipped(*impl, [&](cv::Mat &target) {
+            if (fill.visible()) cv::circle(target, centre, radius, cvcolor(fill.colour(), channels()), cv::FILLED, cv::LINE_AA);
+            if (stroke.visible()) cv::circle(target, centre, radius, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        });
     }
 
     void image::paint_line(const sc::line &shape, const sc::stroke &stroke) {
         if (empty()) return;
-        cv::line(impl->image_mat, pixel(shape.from()), pixel(shape.to()), cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        clipped(*impl, [&](cv::Mat &target) {
+            cv::line(target, pixel(shape.from()), pixel(shape.to()), cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        });
     }
 
     void image::paint_text(const sc::text &sample, const sc::fill &fill) {
         if (empty()) return;
         const hershey font{sample.font};
-        cv::putText(impl->image_mat, sample.content, pixel(sample.position), font.face, font.scale, cvcolor(fill.colour(), channels()),
-                    font.thickness, cv::LINE_AA);
+        clipped(*impl, [&](cv::Mat &target) {
+            cv::putText(target, sample.content, pixel(sample.position), font.face, font.scale, cvcolor(fill.colour(), channels()), font.thickness,
+                        cv::LINE_AA);
+        });
     }
 
     void image::paint_path(const path &shape, const sc::appearance &look) {
@@ -459,11 +496,36 @@ namespace sc {
             outline.reserve(points.size());
             for (const auto &point: points) outline.push_back(pixel(point));
         }
-        if (fill.visible() && !closed.empty()) cv::fillPoly(impl->image_mat, closed, cvcolor(fill.colour(), channels()), cv::LINE_AA);
-        if (stroke.visible()) {
-            cv::polylines(impl->image_mat, closed, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
-            cv::polylines(impl->image_mat, open, false, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+        clipped(*impl, [&](cv::Mat &target) {
+            if (fill.visible() && !closed.empty()) cv::fillPoly(target, closed, cvcolor(fill.colour(), channels()), cv::LINE_AA);
+            if (stroke.visible()) {
+                cv::polylines(target, closed, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+                cv::polylines(target, open, false, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+            }
+        });
+    }
+
+    void image::push_clip(const path &shape) {
+        // Each outline filled on its own, so outlines that overlap add up (as the nonzero rule
+        // does), and within the clip already pushed. An empty image keeps an empty mask, so the
+        // pushes and pops still pair up.
+        cv::Mat mask;
+        if (!empty()) {
+            mask = cv::Mat::zeros(impl->image_mat.size(), CV_8UC1);
+            for (const auto &outline: shape.flattened()) {
+                if (outline.points.size() < 3) continue;
+                std::vector<cv::Point> corners;
+                corners.reserve(outline.points.size());
+                for (const auto &point: outline.points) corners.push_back(pixel(point));
+                cv::fillPoly(mask, std::vector<std::vector<cv::Point> >{corners}, cv::Scalar{255}, cv::LINE_AA);
+            }
+            if (!impl->clips.empty() && impl->clips.back().size() == mask.size()) mask = cv::min(mask, impl->clips.back());
         }
+        impl->clips.push_back(mask);
+    }
+
+    void image::pop_clip() {
+        if (!impl->clips.empty()) impl->clips.pop_back();
     }
 
     double image::measure_width(const sc::text &sample) {

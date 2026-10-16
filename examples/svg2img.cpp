@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
     const sc::params args{argc, argv, {
         {"name", "svg2img"},
         {"description", "Renders an SVG file as an image: PNG (the default), JPEG, WebP, BMP or TIFF. Without OUTPUT it's written "
-                        "next to INPUT, with the type's extension. Not drawn yet: gradients, masks, clipping, transparency and "
-                        "text in real fonts (OpenCV's Hershey fonts stand in)."},
+                        "next to INPUT, with the type's extension. Not drawn yet: gradients, masks by luminance, transparency, "
+                        "the nonzero fill rule and text in real fonts (OpenCV's Hershey fonts stand in)."},
         {"options", {
             {"type", {{"short", "t"}, {"choices", {"png", "jpg", "webp", "bmp", "tiff"}},
                       {"help", "the image type (default: OUTPUT's extension, else png)"}}},
