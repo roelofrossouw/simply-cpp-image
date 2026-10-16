@@ -1,5 +1,7 @@
 #include "opencv.h"
 #include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <cmath>
 #include <cstring>
 #include <stdexcept>
@@ -202,6 +204,16 @@ namespace sc {
     }
 
     bool image::save(const std::string &filename) const {
+        return cv::imwrite(filename, impl->image_mat);
+    }
+
+    bool image::save(const std::string &filename, const int quality) const {
+        // Only the format's own setting: OpenCV warns about any other.
+        auto extension = std::filesystem::path{filename}.extension().string();
+        std::ranges::transform(extension, extension.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        const int q = std::clamp(quality, 1, 100);
+        if (extension == ".jpg" || extension == ".jpeg") return cv::imwrite(filename, impl->image_mat, {cv::IMWRITE_JPEG_QUALITY, q});
+        if (extension == ".webp") return cv::imwrite(filename, impl->image_mat, {cv::IMWRITE_WEBP_QUALITY, q});
         return cv::imwrite(filename, impl->image_mat);
     }
 

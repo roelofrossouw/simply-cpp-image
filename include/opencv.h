@@ -85,6 +85,10 @@ namespace sc {
         /// Saves in the format the file's extension names; false if OpenCV couldn't.
         bool save(const std::string &filename) const;
 
+        /// Saved with this quality, 1 to 100, where the format has one (JPEG, WebP); the others
+        /// ignore it.
+        bool save(const std::string &filename, int quality) const;
+
         /// A resized copy; see resize_to().
         [[nodiscard]] image resized(size_i new_size) const;
 

@@ -1,7 +1,8 @@
 # simply-cpp-image
 
 C++20 wrapper around OpenCV for loading, saving, displaying, drawing on and pre-processing images,
-plus SVG to PNG rendering (`sc::svg2png`, LunaSVG).
+plus SVG rendering (`sc::svg2png`, LunaSVG) and `svg2img`, a tool that turns SVG files into PNG,
+JPEG, WebP, BMP or TIFF images.
 
 **Documentation:** the [simply-cpp wiki](https://github.com/roelofrossouw/simply-cpp/wiki) has an [images guide](https://github.com/roelofrossouw/simply-cpp/wiki/Images) and the [sc-image reference](https://github.com/roelofrossouw/simply-cpp/wiki/Reference-sc-image), plus [getting started](https://github.com/roelofrossouw/simply-cpp/wiki/Getting-Started) for the whole suite.
 
@@ -119,6 +120,33 @@ To reverse `generate_blob()` normalization (including centered ranges such as `[
 ```cpp
 sc::image image = sc::image::from_blob(data, width, height, 1.0 / 255.0, 127.5, true);
 ```
+
+### SVG to images
+
+```cpp
+const std::string png = sc::svg2png::FromFile("logo.svg");                        // its own size
+const std::string big = sc::svg2png::FromString(svg, 800, 0, sc::color::White);  // 800 wide, on white
+const sc::size own = sc::svg2png::Size(svg);                                     // its width and height
+sc::image{big}.save("logo.jpg", 90);                                             // JPEG at quality 90
+```
+
+A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size.
+
+## svg2img
+
+`svg2img`, installed with the runtime package, renders SVG files from the command line:
+
+```bash
+svg2img logo.svg                         # logo.png next to it, at the SVG's own size
+svg2img logo.svg -t jpg -s 2             # logo.jpg, twice the size, on white
+svg2img logo.svg thumb.webp -W 120       # 120 wide, the height in proportion
+svg2img logo.svg -H 300 -b "#ffeedd"     # 300 high, on a cream background
+```
+
+The type comes from `--type` (png, jpg, webp, bmp, tiff), else the output's extension, else PNG;
+without an output the input's name gets the type's extension. `--quality` (1 to 100, 95 by
+default) sets JPEG and WebP quality. Only PNG keeps transparency, so the others go on white unless
+`--background` says otherwise. `--help` lists the options.
 
 ## Demo
 
