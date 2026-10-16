@@ -65,6 +65,8 @@ endif ()
 add_sc_example(sc-image-demo LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 add_sc_example(sc-image-shapes LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+# A tool, not a demo: SVG files to PNG, JPEG, WebP, BMP or TIFF.
+add_sc_example(svg2img LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 
 #############
 # Packaging #

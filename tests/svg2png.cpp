@@ -56,12 +56,32 @@ int main() {
         CHECK_EQ(rendered.size(), sc::size_i(17, 33));
     }
 
+    SECTION("A size of its own, the aspect ratio kept, a background");
+    {
+        const string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><circle cx="10" cy="10" r="5"/></svg>)";
+        CHECK(sc::svg2png::Size(svg) == (sc::size{40, 20}));
+        const auto read = [&](const string &png, const string &name) {
+            const auto path = (scratch / name).string();
+            sc::file_put_contents(path, png);
+            return sc::image{path};
+        };
+        CHECK_EQ(read(sc::svg2png::FromString(svg, 100, 30, sc::color::Transparent), "both.png").size(), sc::size_i(100, 30));
+        CHECK_EQ(read(sc::svg2png::FromString(svg, 80, 0, sc::color::Transparent), "wide.png").size(), sc::size_i(80, 40)); // aspect kept
+        CHECK_EQ(read(sc::svg2png::FromString(svg, 0, 10, sc::color::White), "low.png").size(), sc::size_i(20, 10));
+
+        // A white background, saved as JPEG at a quality.
+        const auto jpeg = (scratch / "white.jpg").string();
+        CHECK(read(sc::svg2png::FromString(svg, 0, 0, sc::color::White), "white.png").save(jpeg, 80));
+        CHECK_EQ(sc::image{jpeg}.size(), sc::size_i(40, 20));
+    }
+
     SECTION("Unusable input is rejected");
     {
         // A file that is not there reaches the renderer as no data at all.
         CHECK_THROWS_AS(sc::svg2png::FromFile("resource/no-such-file.svg"), invalid_argument);
         CHECK_THROWS_AS(sc::svg2png::FromString(""), invalid_argument);
         CHECK_THROWS_AS(sc::svg2png::FromString("this is not svg"), invalid_argument);
+        CHECK_THROWS_AS(sc::svg2png::Size("this is not svg"), invalid_argument);
         // Valid input must not throw.
         CHECK_NOTHROW(sc::svg2png::FromFile("resource/logo18.svg"));
     }
