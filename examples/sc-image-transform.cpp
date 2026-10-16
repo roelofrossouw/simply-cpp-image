@@ -1,7 +1,7 @@
 // Changing images with sc-image: resizing, cropping, rotating, straightening a tilted area,
 // grayscale, joining two side by side, and preparing an image as a neural network's input. Each line
-// shows a call, as written, and what it returned. Pass an image file to use that instead of the
-// built-in SVG. Writes only to the temporary directory.
+// shows a call, as written, and what it returned. --help lists the options: an image file to use
+// instead of the built-in SVG. Writes only to the temporary directory.
 
 #include <iostream>
 #include <string>
@@ -9,15 +9,23 @@
 #include <filesystem>
 #include <vector>
 
+#include <params.h>
 #include <sc.h>
 
 #include <image.h>
 #include <svg2png.h>
 
 int main(int argc, char **argv) {
+    // The command line: -h/--help comes with sc::params, which also reports mistakes and exits.
+    const sc::params args{argc, argv, {
+        {"name", "sc-image-transform"},
+        {"description", "Resizes, crops, rotates, straightens, greys and joins an image, and prepares it as a neural network input. Writes only to the temporary directory."},
+        {"positional", {
+            {"image", {{"required", false}, {"help", "an image to use instead of the built-in SVG"}}}}}}};
+
     try {
         const auto folder = std::filesystem::temp_directory_path();
-        std::string source = argc > 1 ? argv[1] : "";
+        std::string source = args.as<std::string>("image", "");
         sc::console::title("simply-cpp image: resizing, cropping, rotating and more");
         if (source.empty()) {
             sc::console::output() << "No image given (sc-image-transform <image>), so using a rendered one\n";

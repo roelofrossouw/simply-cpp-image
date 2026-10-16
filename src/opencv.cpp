@@ -346,7 +346,8 @@ namespace sc {
     }
 
     namespace {
-        // An sc::color (0..1, RGB) as OpenCV wants it for this image: BGR(A), or grey. Opaque.
+        // An sc::color (0..1, RGB) as OpenCV wants it for this image: BGR, or grey. Alpha is
+        // ignored: OpenCV draws opaque.
         cv::Scalar cvcolor(const color &colour, const int channels) {
             const double red = colour.red() * 255, green = colour.green() * 255, blue = colour.blue() * 255;
             if (channels == 1) return cv::Scalar{0.299 * red + 0.587 * green + 0.114 * blue};
@@ -440,10 +441,6 @@ namespace sc {
     double image::measure_cap_height(const font &font) {
         return hershey{font}.size("H").height;
     }
-
-    // void image::setFeatures(const float *new_features) {
-    //     std::memcpy(features, new_features, sizeof(features));
-    // }
 
     void image::generate_blob(const double scale, const double mean, const bool swap_rb) const {
         const cv::Scalar scalar_mean{mean, mean, mean};

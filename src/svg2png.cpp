@@ -24,13 +24,14 @@ namespace sc {
     }
 
     std::string svg2png::FromString(const std::string_view svg_data) {
-        // Up to v3.5.0 a UTF8 bom causes an error
-        auto document = Document::loadFromData(utf8::strip_bom(svg_data).data());
+        // lunasvg up to 3.5.0 rejects a UTF-8 BOM, so strip it.
+        const auto svg = utf8::strip_bom(svg_data);
+        auto document = Document::loadFromData(svg.data(), svg.size()); // a string_view needn't end in a null
         return PngData(document.get());
     }
 
     std::string svg2png::FromFile(const std::string &filename) {
-        // Don't use loadfromfile directly up to v3.5.0 the UTF8 bom causes an error
+        // Not lunasvg's loadFromFile(): it would keep a UTF-8 BOM (see above).
         return FromString(file_get_contents(filename));
     }
 }
