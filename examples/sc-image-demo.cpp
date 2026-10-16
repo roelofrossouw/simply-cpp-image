@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
         auto preview = image.resized({160, 100});
         sc::console::step("auto preview = image.resized({160, 100});");
         SC_SHOW(preview.size());
-        SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::color::White, sc::color::Transparent, 2));
+        SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::stroke{sc::color::White, 2}));
         SC_STEP(preview.draw(sc::text{"simply-cpp", {20, 56}, sc::font::bold("sans-serif", 18)}, sc::color::White));
 
         sc::console::heading("Saving");

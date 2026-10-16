@@ -29,9 +29,6 @@ namespace {
         return {rhs.width(), rhs.height()};
     }
 
-    // draw_contours()' outline style; canvas::draw() takes colours and widths.
-    const cv::Scalar outline_color{255, 0, 0};
-    constexpr int outline_thickness = 2;
 }
 
 namespace sc {
@@ -214,18 +211,19 @@ namespace sc {
         return result;
     }
 
-    std::vector<std::vector<point_i> > image::find_contours(const int method) const {
+    std::vector<polygon_i> image::find_contours(const int method) const {
         std::vector<std::vector<cv::Point> > cv_contours;
         cv::Mat input;
         if (impl->image_mat.channels() == 1) input = impl->image_mat.clone();
         else cv::cvtColor(impl->image_mat, input, cv::COLOR_BGR2GRAY);
         cv::findContours(input, cv_contours, cv::RETR_EXTERNAL, method);
-        std::vector<std::vector<point_i> > contours;
+        std::vector<polygon_i> contours;
         contours.reserve(cv_contours.size());
         for (const auto &cv_contour: cv_contours) {
-            auto &contour = contours.emplace_back();
-            contour.reserve(cv_contour.size());
-            for (const auto &point: cv_contour) contour.emplace_back(point.x, point.y);
+            std::vector<point_i> points;
+            points.reserve(cv_contour.size());
+            for (const auto &point: cv_contour) points.emplace_back(point.x, point.y);
+            contours.emplace_back(std::move(points));
         }
         return contours;
     }
@@ -347,17 +345,6 @@ namespace sc {
         return result;
     }
 
-    void image::draw_contours(const std::vector<std::vector<point_i> > &contours) const {
-        std::vector<std::vector<cv::Point> > cv_contours;
-        cv_contours.reserve(contours.size());
-        for (const auto &contour: contours) {
-            auto &cv_contour = cv_contours.emplace_back();
-            cv_contour.reserve(contour.size());
-            for (const auto &point: contour) cv_contour.push_back(cvpoint(point));
-        }
-        cv::drawContours(impl->image_mat, cv_contours, -1, outline_color, outline_thickness);
-    }
-
     namespace {
         // An sc::color (0..1, RGB) as OpenCV wants it for this image: BGR(A), or grey. Opaque.
         cv::Scalar cvcolor(const color &colour, const int channels) {
@@ -395,37 +382,37 @@ namespace sc {
         }
     }
 
-    void image::paint_polygon(const polygon &shape, const color &stroke, const color &fill, const double width) {
+    void image::paint_polygon(const polygon &shape, const sc::stroke &stroke, const sc::fill &fill) {
         if (empty()) return;
         std::vector<cv::Point> points;
         points.reserve(shape.size());
         for (const auto &point: shape) points.push_back(pixel(point));
         const std::vector<std::vector<cv::Point> > outline{points};
-        if (fill.alpha() > 0) cv::fillPoly(impl->image_mat, outline, cvcolor(fill, channels()), cv::LINE_AA);
-        if (width > 0) cv::polylines(impl->image_mat, outline, true, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
+        if (fill.visible()) cv::fillPoly(impl->image_mat, outline, cvcolor(fill.colour(), channels()), cv::LINE_AA);
+        if (stroke.visible()) cv::polylines(impl->image_mat, outline, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
     }
 
-    void image::paint_circle(const sc::circle &shape, const color &stroke, const color &fill, const double width) {
+    void image::paint_circle(const sc::circle &shape, const sc::stroke &stroke, const sc::fill &fill) {
         if (empty()) return;
         const auto centre = pixel(shape.center());
         const int radius = detail::polygon_coordinate(shape.radius());
-        if (fill.alpha() > 0) cv::circle(impl->image_mat, centre, radius, cvcolor(fill, channels()), cv::FILLED, cv::LINE_AA);
-        if (width > 0) cv::circle(impl->image_mat, centre, radius, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
+        if (fill.visible()) cv::circle(impl->image_mat, centre, radius, cvcolor(fill.colour(), channels()), cv::FILLED, cv::LINE_AA);
+        if (stroke.visible()) cv::circle(impl->image_mat, centre, radius, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
     }
 
-    void image::paint_line(const point &from, const point &to, const color &colour, const double width) {
+    void image::paint_line(const sc::line &shape, const sc::stroke &stroke) {
         if (empty()) return;
-        cv::line(impl->image_mat, pixel(from), pixel(to), cvcolor(colour, channels()), thickness(width), cv::LINE_AA);
+        cv::line(impl->image_mat, pixel(shape.from()), pixel(shape.to()), cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
     }
 
-    void image::paint_text(const sc::text &sample, const color &colour) {
+    void image::paint_text(const sc::text &sample, const sc::fill &fill) {
         if (empty()) return;
         const hershey font{sample.font};
-        cv::putText(impl->image_mat, sample.content, pixel(sample.position), font.face, font.scale, cvcolor(colour, channels()),
+        cv::putText(impl->image_mat, sample.content, pixel(sample.position), font.face, font.scale, cvcolor(fill.colour(), channels()),
                     font.thickness, cv::LINE_AA);
     }
 
-    void image::paint_path(const path &shape, const color &stroke, const color &fill, const double width) {
+    void image::paint_path(const path &shape, const sc::stroke &stroke, const sc::fill &fill) {
         if (empty()) return;
         std::vector<std::vector<cv::Point> > closed, open;
         for (const auto &[points, is_closed]: shape.flattened()) {
@@ -433,10 +420,10 @@ namespace sc {
             outline.reserve(points.size());
             for (const auto &point: points) outline.push_back(pixel(point));
         }
-        if (fill.alpha() > 0 && !closed.empty()) cv::fillPoly(impl->image_mat, closed, cvcolor(fill, channels()), cv::LINE_AA);
-        if (width > 0) {
-            cv::polylines(impl->image_mat, closed, true, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
-            cv::polylines(impl->image_mat, open, false, cvcolor(stroke, channels()), thickness(width), cv::LINE_AA);
+        if (fill.visible() && !closed.empty()) cv::fillPoly(impl->image_mat, closed, cvcolor(fill.colour(), channels()), cv::LINE_AA);
+        if (stroke.visible()) {
+            cv::polylines(impl->image_mat, closed, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+            cv::polylines(impl->image_mat, open, false, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
         }
     }
 

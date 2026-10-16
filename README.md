@@ -55,26 +55,27 @@ resized.save("output.jpg");
 
 `resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
-An `sc::image` is an `sc::canvas` (sc-core), so shapes and text are drawn on it with the same
-calls as on an `sc::pdf`: `draw(shape, stroke = black, fill = transparent, width = 1)`, in pixels.
+An `sc::image` is an `sc::canvas` (sc-graphics), so shapes and text are drawn on it with the same
+calls as on an `sc::pdf`: `draw(shape, stroke, fill)`, in pixels. A stroke is a colour and a width
+(black, 1 pixel by default), a fill a colour (none by default); a colour converts to either.
 Points are rounded to whole pixels and edges antialiased:
 
 ```cpp
 sc::image canvas{"input.jpg"};
-canvas.draw(sc::rect{10, 10, 80, 40});                                      // black outline, 1 pixel
-canvas.draw(sc::rect{10, 10, 80, 40}, sc::color::Red, sc::color::Transparent, 2, 6); // rounded corners
-canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15}, sc::color::Blue);
+canvas.draw(sc::rect{10, 10, 80, 40});                                       // black outline, 1 pixel
+canvas.draw(sc::rounded_rect{sc::rect{10, 10, 80, 40}, 6}, sc::stroke{sc::color::Red, 2}); // rounded corners
+canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15}, sc::color::Blue);       // a colour: a stroke 1 wide
 canvas.draw(sc::polygon{{10, 10}, {90, 10}, {50, 50}}, sc::color::Black, sc::color{"gold"});
-canvas.draw(sc::circle{{50, 50}, 20}, sc::color::Transparent, sc::color::White); // filled only
-canvas.draw(std::vector<sc::circle>{{{50, 50}, 20}, {{100, 50}, 12}}, sc::color::Green);
-canvas.draw(sc::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White);  // baseline at y = 24
-canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::color::Red, 2);
+canvas.draw(sc::circle{{50, 50}, 20}, sc::stroke::none(), sc::color::White); // filled only
+canvas.draw(sc::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White); // baseline at y = 24
+canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::stroke{sc::color::Red, 2});
+for (const auto &contour: canvas.find_contours()) canvas.draw(contour, sc::stroke{sc::color::Blue, 2});
 ```
 
 Text uses OpenCV's Hershey fonts: `sans-serif` (the default) or `serif`, bold from weight 600,
 italic, with `font.size` as the text's height in pixels.
 
-`draw_contours()` draws `find_contours()` results as 2-pixel blue outlines.
+`find_contours()` gives each outline as an `sc::polygon_i`, drawn like any other polygon.
 
 To display two equal-height images together:
 
@@ -155,7 +156,7 @@ SC_SHOW(image.size());
 auto preview = image.resized({160, 100});
 sc::console::step("auto preview = image.resized({160, 100});");
 SC_SHOW(preview.size());
-SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::color::White, sc::color::Transparent, 2));
+SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::stroke{sc::color::White, 2}));
 SC_STEP(preview.draw(sc::text{"simply-cpp", {20, 56}, sc::font::bold("sans-serif", 18)}, sc::color::White));
 
 sc::console::heading("Saving");

@@ -174,23 +174,16 @@ int main() {
         CHECK_EQ(horizontal_crop.size(), sc::size_i(9, 2));
 
         sc::image canvas{source};
-        CHECK_NOTHROW(canvas.draw_contours(contours));
-        CHECK_NOTHROW(canvas.draw_contours({}));
+        for (const auto &contour: contours) CHECK_NOTHROW(canvas.draw(contour, sc::stroke{sc::color::Blue, 2}));
         CHECK_NOTHROW(canvas.draw(sc::rect{1, 1, 2, 2}));
         CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 1, 2, 2}));
         CHECK_NOTHROW(canvas.draw(rectangle));
         CHECK_NOTHROW(canvas.draw(rectangle_polygon));
         CHECK_NOTHROW(canvas.draw(sc::polygon{{1.2, 1.4}, {3.6, 1.4}, {2.5, 3.5}})); // rounded to pixels
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon>{{{1.2, 1.4}, {3.6, 1.4}, {2.5, 3.5}}}));
         CHECK_NOTHROW(canvas.draw(sc::circle{{2, 2}, 1.5}));
         CHECK_NOTHROW(canvas.draw(sc::circle_i{{2, 2}, 1}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon_i>{}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::polygon_i>{rectangle_polygon}));
-        CHECK_NOTHROW(canvas.draw(rectangles));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::rotated_rect>{}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::rect>{{1, 1, 2, 2}}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::circle>{{{2, 2}, 1.5}}));
-        CHECK_NOTHROW(canvas.draw(std::vector<sc::circle_i>{{{2, 2}, 1}}));
+        for (const auto &each: rectangles) CHECK_NOTHROW(canvas.draw(each));
+        CHECK_NOTHROW(canvas.draw(sc::rounded_rect{sc::rect{0, 0, 4, 4}, 1}, sc::color::Red, sc::color::Blue));
     }
 
     SECTION("Stride alignment");
@@ -305,8 +298,8 @@ int main() {
     {
         sc::image canvas{source};
         CHECK_NOTHROW(canvas.draw(sc::text{"label", {10, 10}}));
-        CHECK_NOTHROW(canvas.draw(sc::circle_i{{20, 20}, 5}, sc::color::Green, sc::color::Transparent, 2));
-        CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 2, 30, 40}, sc::color::Blue, sc::color::Transparent, 2));
+        CHECK_NOTHROW(canvas.draw(sc::circle_i{{20, 20}, 5}, sc::stroke{sc::color::Green, 2}));
+        CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 2, 30, 40}, sc::stroke{sc::color::Blue, 2}));
         // Drawing is in place and must not resize anything.
         CHECK_EQ(canvas.size(), sc::size_i(source_width, source_height));
         CHECK(!canvas.empty());
@@ -319,8 +312,8 @@ int main() {
     {
         const float blank[60 * 40]{};
         auto canvas = sc::image::from_blob(blank, 60, 40, 1);
-        canvas.draw(sc::rect{5, 5, 20, 10}, sc::color::Transparent, sc::color::White); // filled, no outline
-        canvas.draw(sc::circle{{45, 25}, 8}, sc::color::Transparent, sc::color::White);
+        canvas.draw(sc::rect{5, 5, 20, 10}, sc::stroke::none(), sc::color::White); // filled, no outline
+        canvas.draw(sc::circle{{45, 25}, 8}, sc::stroke::none(), sc::color::White);
         const auto found = canvas.find_min_area_rects(20);
         CHECK_EQ(found.size(), size_t{2});
         for (const auto &shape: found) {
@@ -333,11 +326,11 @@ int main() {
         }
 
         sc::canvas &any = canvas; // the same calls as on an sc::pdf
-        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, sc::color::Red, sc::color::Blue, 2));
+        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, sc::stroke{sc::color::Red, 2}, sc::color::Blue));
         CHECK_NOTHROW(any.draw(sc::polygon{{1.5, 1.5}, {10.5, 1.5}, {5, 9}}));
-        CHECK_NOTHROW(any.draw(sc::rect{2, 2, 30, 20}, sc::color::Black, sc::color::Transparent, 1, 5));
+        CHECK_NOTHROW(any.draw(sc::rounded_rect{sc::rect{2, 2, 30, 20}, 5}));
         CHECK_NOTHROW(any.draw(sc::text{"Hi", {2, 30}, sc::font::bold("serif", 12)}, sc::color::White));
-        CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::color::Green, 1.5));
+        CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::stroke{sc::color::Green, 1.5}));
 
         auto drawing = sc::image::from_blob(blank, 60, 40, 1);
         const sc::svg ring{R"svg(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">)svg"

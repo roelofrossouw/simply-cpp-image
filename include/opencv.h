@@ -86,8 +86,8 @@ namespace sc {
         /// Returns a resized copy of this image.
         [[nodiscard]] image resized(size_i new_size) const;
 
-        /// Finds external contours and returns their points.
-        [[nodiscard]] std::vector<std::vector<point_i> > find_contours(int method = 2) const;
+        /// Finds external contours: each an outline, as a polygon (draw them with canvas::draw()).
+        [[nodiscard]] std::vector<polygon_i> find_contours(int method = 2) const;
 
         /// Returns each external contour's minimum-area rotated rectangle.
         /// Rectangles with an area below minimum_area are omitted.
@@ -108,10 +108,6 @@ namespace sc {
         [[nodiscard]] image deskewed(const rotated_rect &area) const;
 
         void rotate(int degrees);
-
-        /// Draws all supplied contours (such as find_contours() gives) onto the image in place, as
-        /// 2-pixel blue outlines.
-        void draw_contours(const std::vector<std::vector<point_i> > &contours) const;
 
         /// Copies 512 feature values into the image's feature buffer.
         // void setFeatures(const float *new_features);
@@ -159,13 +155,15 @@ namespace sc {
         void mask(double threshold = 0.5);
 
     protected:
-        void paint_polygon(const polygon &shape, const color &stroke, const color &fill, double width) override;
+        // Strokes and fills in their colour (opaque); a stroke's width rounds to whole pixels, at
+        // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
+        void paint_polygon(const polygon &shape, const sc::stroke &stroke, const sc::fill &fill) override;
 
-        void paint_circle(const sc::circle &shape, const color &stroke, const color &fill, double width) override;
+        void paint_circle(const sc::circle &shape, const sc::stroke &stroke, const sc::fill &fill) override;
 
-        void paint_line(const point &from, const point &to, const color &colour, double width) override;
+        void paint_line(const sc::line &shape, const sc::stroke &stroke) override;
 
-        void paint_text(const sc::text &sample, const color &colour) override;
+        void paint_text(const sc::text &sample, const sc::fill &fill) override;
 
         // In pixels, for the Hershey font that draws it; they work on an empty image too. The
         // x-height is two thirds of the cap height, as Hershey fonts draw it.
@@ -175,8 +173,9 @@ namespace sc {
 
         double measure_cap_height(const font &font) override;
 
-        // All of a path's outlines filled together (so holes stay holes), curves as short lines.
-        void paint_path(const path &shape, const color &stroke, const color &fill, double width) override;
+        // All of a path's outlines filled together, curves as short lines. OpenCV fills by the
+        // even-odd rule whatever the fill's rule: nested outlines are always holes.
+        void paint_path(const path &shape, const sc::stroke &stroke, const sc::fill &fill) override;
 
     private:
         impl::internals *impl;

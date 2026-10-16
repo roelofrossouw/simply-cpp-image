@@ -37,7 +37,7 @@ int main() {
         sc::console::step("const auto contours = shapes.find_contours();");
         SC_SHOW(contours.size());
         for (const auto &contour: contours) {
-            const auto bounds = static_cast<sc::rect_i>(sc::polygon_i{contour});
+            const auto bounds = static_cast<sc::rect_i>(contour);
             sc::console::note(std::to_string(contour.size()) + " points, within " + sc::console::format(bounds));
         }
 
@@ -47,10 +47,13 @@ int main() {
         sc::console::step("const auto fitted = shapes.find_min_area_rects(100);");
         for (const auto &box: fitted) sc::console::note(sc::console::format(box));
 
-        sc::console::heading("Drawing on it: draw(shape, stroke, fill, width), as on an sc::pdf");
-        SC_STEP(shapes.draw(fitted, sc::color::Red, sc::color::Transparent, 2)); // rotated rectangles, as outlines
-        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, sc::color{"orange"}, sc::color{0.3, 0.3, 0.8}, 3));
-        SC_STEP(shapes.draw(sc::rect{10, 10, 380, 220}, sc::color::Green, sc::color::Transparent, 2, 12));
+        sc::console::heading("Drawing on it: draw(shape, stroke, fill), as on an sc::pdf");
+        for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2}); // rotated rectangles, as outlines
+        sc::console::step("for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2});");
+        for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2}); // the outlines found
+        sc::console::step("for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2});");
+        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, sc::stroke{sc::color{"orange"}, 3}, sc::color{0.3, 0.3, 0.8}));
+        SC_STEP(shapes.draw(sc::rounded_rect{sc::rect{10, 10, 380, 220}, 12}, sc::stroke{sc::color::Green, 2}));
         SC_STEP(shapes.draw(sc::text{"3 shapes", {300, 225}, {"sans-serif", 18}}, sc::color::White));
         SC_SHOW(shapes.save(output));
 
