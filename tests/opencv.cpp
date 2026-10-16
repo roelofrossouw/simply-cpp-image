@@ -333,8 +333,8 @@ int main() {
         CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::stroke{sc::color::Green, 1.5}));
 
         auto drawing = sc::image::from_blob(blank, 60, 40, 1);
-        const sc::svg ring{R"svg(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">)svg"
-                           R"svg(<path fill-rule="evenodd" fill="#ffffff" d="M0 0 H40 V40 H0 Z M10 10 V30 H30 V10 Z"/></svg>)svg"};
+        const auto ring = sc::drawing::from_svg(R"svg(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">)svg"
+                                                R"svg(<path fill-rule="evenodd" fill="#ffffff" d="M0 0 H40 V40 H0 Z M10 10 V30 H30 V10 Z"/></svg>)svg");
         drawing.draw(ring, sc::rect{10, 0, 40, 40}); // a square with a square hole, centred
         const auto outer = drawing.find_min_area_rects(100);
         CHECK_EQ(outer.size(), size_t{1}); // one outline: the hole doesn't make a second shape
