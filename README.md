@@ -59,7 +59,7 @@ An `sc::image` is an `sc::canvas` (sc-graphics), so shapes and text are drawn on
 calls as on an `sc::pdf`: `draw(shape, appearance)`, in pixels. An `sc::appearance` is a stroke (a
 colour and a width; black, 1 pixel by default) and a fill (a colour; none by default): a colour
 converts to an outline, `{stroke, fill}` gives both, `sc::appearance::filled(fill)` only the inside.
-Points are rounded to whole pixels and edges antialiased. Colours are painted opaque: a partly
+Points are rounded to whole pixels, edges antialiased, and clip paths honoured. Colours are painted opaque: a partly
 transparent one is drawn solid (only the PDF engines honour alpha), a fully transparent one not at all:
 
 ```cpp
@@ -135,9 +135,10 @@ A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size. It 
 sc-graphics reads and OpenCV draws: paths, the basic shapes, groups, transforms, flat colours and
 strokes, with text in OpenCV's Hershey fonts.
 
-TODO: gradients, masks, clipping, opacity (a transparent background comes out white) and text in
-real fonts. Until then, an SVG that relies on them (icons cut out with masks or clip paths, say)
-draws wrongly.
+Clip paths are drawn, smooth-edged, and so is a white mask (read as a clip).
+
+TODO: gradients, masks by their luminance, opacity (a transparent background comes out white), the
+nonzero fill rule (outlines that overlap within one path cancel out) and text in real fonts.
 
 ## svg2img
 

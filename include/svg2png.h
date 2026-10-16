@@ -13,8 +13,9 @@ namespace sc {
     /// strokes, and text in OpenCV's Hershey fonts. A UTF-8 BOM is allowed. All throw
     /// std::invalid_argument when the SVG can't be read.
     ///
-    /// TODO: gradients, masks, clipping, opacity (transparent parts and backgrounds come out
-    /// opaque, a transparent background white) and text in real fonts.
+    /// Clip paths are drawn, and a white mask (read as a clip). TODO: gradients, masks by their
+    /// luminance, opacity (transparent parts come out opaque, a transparent background white), the
+    /// nonzero fill rule and text in real fonts.
     class svg2png {
     public:
         /// At the SVG's own size, on white.

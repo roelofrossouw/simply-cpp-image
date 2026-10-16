@@ -12,7 +12,7 @@ namespace sc {
 
     /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
     /// draw(shape, appearance), the same as on an sc::pdf, in pixels. Points are rounded to whole
-    /// pixels and lines antialiased. Colours are painted opaque (a partly transparent one as if
+    /// pixels, lines antialiased, clip paths honoured. Colours are painted opaque (a partly transparent one as if
     /// solid; only the PDF engines honour alpha), as grey on a single-channel image. Text uses
     /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
     /// font.size as the text's height in pixels; other families fall back to sans-serif. Text is
@@ -176,9 +176,9 @@ namespace sc {
         // An appearance's stroke and fill in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
         //
-        // TODO: gradients, masks, clipping (push_clip/pop_clip), opacity (alpha blending), the nonzero
-        // fill rule, and text in real fonts (FreeType outlines from sc-graphics' font_face) instead of
-        // Hershey.
+        // TODO: gradients, masks (by luminance; SVG masks are read as clips), opacity (alpha
+        // blending), the nonzero fill rule, and text in real fonts (FreeType outlines from
+        // sc-graphics' font_face) instead of Hershey.
         void paint_polygon(const polygon &shape, const sc::appearance &look) override;
 
         void paint_circle(const sc::circle &shape, const sc::appearance &look) override;
@@ -197,6 +197,12 @@ namespace sc {
         // All of a path's outlines filled together, curves as short lines. OpenCV fills by the
         // even-odd rule whatever the fill's rule: nested outlines are always holes.
         void paint_path(const path &shape, const sc::appearance &look) override;
+
+        // Clipped to inside shape's outlines (each filled on its own, so overlapping ones add up,
+        // but a hole cut by one inside another isn't), with a smooth edge; clips nest.
+        void push_clip(const path &shape) override;
+
+        void pop_clip() override;
 
     private:
         impl::internals *impl;
