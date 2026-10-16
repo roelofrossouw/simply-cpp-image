@@ -11,7 +11,7 @@ namespace sc {
     }
 
     /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
-    /// draw(shape, stroke, fill), the same as on an sc::pdf, in pixels. Points are rounded to whole
+    /// draw(shape, appearance), the same as on an sc::pdf, in pixels. Points are rounded to whole
     /// pixels and lines antialiased. Colours are painted opaque (a partly transparent one as if
     /// solid; only the PDF engines honour alpha), as grey on a single-channel image. Text uses
     /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
@@ -162,11 +162,11 @@ namespace sc {
         void mask(double threshold = 0.5);
 
     protected:
-        // Strokes and fills in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
+        // An appearance's stroke and fill in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
-        void paint_polygon(const polygon &shape, const sc::stroke &stroke, const sc::fill &fill) override;
+        void paint_polygon(const polygon &shape, const sc::appearance &look) override;
 
-        void paint_circle(const sc::circle &shape, const sc::stroke &stroke, const sc::fill &fill) override;
+        void paint_circle(const sc::circle &shape, const sc::appearance &look) override;
 
         void paint_line(const sc::line &shape, const sc::stroke &stroke) override;
 
@@ -181,7 +181,7 @@ namespace sc {
 
         // All of a path's outlines filled together, curves as short lines. OpenCV fills by the
         // even-odd rule whatever the fill's rule: nested outlines are always holes.
-        void paint_path(const path &shape, const sc::stroke &stroke, const sc::fill &fill) override;
+        void paint_path(const path &shape, const sc::appearance &look) override;
 
     private:
         impl::internals *impl;

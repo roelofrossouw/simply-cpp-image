@@ -54,8 +54,9 @@ resized.save("output.jpg");
 `resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
 An `sc::image` is an `sc::canvas` (sc-graphics), so shapes and text are drawn on it with the same
-calls as on an `sc::pdf`: `draw(shape, stroke, fill)`, in pixels. A stroke is a colour and a width
-(black, 1 pixel by default), a fill a colour (none by default); a colour converts to either.
+calls as on an `sc::pdf`: `draw(shape, appearance)`, in pixels. An `sc::appearance` is a stroke (a
+colour and a width; black, 1 pixel by default) and a fill (a colour; none by default): a colour
+converts to an outline, `{stroke, fill}` gives both, `sc::appearance::filled(fill)` only the inside.
 Points are rounded to whole pixels and edges antialiased. Colours are painted opaque: a partly
 transparent one is drawn solid (only the PDF engines honour alpha), a fully transparent one not at all:
 
@@ -64,8 +65,8 @@ sc::image canvas{"input.jpg"};
 canvas.draw(sc::rect{10, 10, 80, 40});                                       // black outline, 1 pixel
 canvas.draw(sc::rounded_rect{sc::rect{10, 10, 80, 40}, 6}, sc::stroke{sc::color::Red, 2}); // rounded corners
 canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15}, sc::color::Blue);       // a colour: a stroke 1 wide
-canvas.draw(sc::polygon{{10, 10}, {90, 10}, {50, 50}}, sc::color::Black, sc::color{"gold"});
-canvas.draw(sc::circle{{50, 50}, 20}, sc::stroke::none(), sc::color::White); // filled only
+canvas.draw(sc::polygon{{10, 10}, {90, 10}, {50, 50}}, {sc::color::Black, sc::color{"gold"}});
+canvas.draw(sc::circle{{50, 50}, 20}, sc::appearance::filled(sc::color::White)); // filled only
 canvas.draw(sc::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White); // baseline at y = 24
 canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::stroke{sc::color::Red, 2});
 for (const auto &contour: canvas.find_contours()) canvas.draw(contour, sc::stroke{sc::color::Blue, 2});
