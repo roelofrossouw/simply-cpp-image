@@ -59,6 +59,26 @@ namespace sc {
         size_ = {impl->image_mat.cols, impl->image_mat.rows};
     }
 
+    image::image(const size_i size, const color &colour) : impl(new impl::internals()) {
+        if (size.width() <= 0 || size.height() <= 0) throw std::invalid_argument{"sc::image: a blank image needs a size above 0"};
+        const auto channel = [](const double v) { return std::clamp(v, 0.0, 1.0) * 255; };
+        impl->image_mat = cv::Mat(size.height(), size.width(), CV_8UC3, cv::Scalar{channel(colour.blue()), channel(colour.green()), channel(colour.red())});
+        size_ = size;
+    }
+
+    std::string image::encoded(const std::string &type, const int quality) const {
+        auto extension = type.starts_with('.') ? type : "." + type;
+        std::ranges::transform(extension, extension.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        const int q = std::clamp(quality, 1, 100);
+        std::vector<int> settings; // only the format's own: OpenCV warns about any other
+        if (extension == ".jpg" || extension == ".jpeg") settings = {cv::IMWRITE_JPEG_QUALITY, q};
+        if (extension == ".webp") settings = {cv::IMWRITE_WEBP_QUALITY, q};
+        std::vector<uchar> bytes;
+        if (impl->image_mat.empty() || !cv::imencode(extension, impl->image_mat, bytes, settings))
+            throw std::runtime_error{"sc::image: can't encode as " + type};
+        return {bytes.begin(), bytes.end()};
+    }
+
     image image::from_blob(const float *blob, const int width, const int height) {
         return from_blob(blob, width, height, 3);
     }

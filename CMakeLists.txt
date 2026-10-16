@@ -14,15 +14,9 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 
 # The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.9.0)
-# sc::canvas, which image implements.
-find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.0.0)
+# sc::canvas, which image implements, and sc::drawing, which svg2png reads SVG with.
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.0.2)
 
-# lunasvg links Threads::Threads (via plutovg) but its own package config
-# doesn't declare that dependency, so a consumer has to find it too - without
-# this, whether the build happens to already have Threads::Threads cached
-# from something unrelated decides whether it configures or not.
-find_package(Threads REQUIRED)
-find_or_install_package(lunasvg simply-cpp-lunasvg lunasvg)
 
 ## OpenCV ##
 set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui)
@@ -37,7 +31,8 @@ find_or_install_package(OpenCV libopencv-dev opencv COMPONENTS ${SC_IMAGE_OPENCV
 set(SOURCE_OBJECTS include/image.h src/image.cpp)
 set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
-add_sc_object(svg2png LINK_LIBRARIES sc::sc-core lunasvg::lunasvg PUBLIC_LINK_LIBRARIES lunasvg::lunasvg)
+# SVG to PNG: sc-graphics' drawing, drawn by the opencv object.
+add_sc_object(svg2png LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
 add_sc_object(opencv LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
         PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
 
@@ -72,4 +67,4 @@ add_sc_example(svg2img LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 # Packaging #
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
-package_sc_module(DEPENDS "simply-cpp-dev (>= 1.9.0~)" simply-cpp-lunasvg DEV_DEPENDS "simply-cpp-graphics-dev (>= 5.0.0~)" libopencv-dev)
+package_sc_module(DEPENDS "simply-cpp-dev (>= 1.9.0~)" "simply-cpp-graphics (>= 5.0.2~)" DEV_DEPENDS "simply-cpp-graphics-dev (>= 5.0.2~)" libopencv-dev)

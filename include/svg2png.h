@@ -1,5 +1,6 @@
 #ifndef SC_SVG2PNG_H
 #define SC_SVG2PNG_H
+
 #include <color.h>
 #include <size.h>
 
@@ -7,15 +8,16 @@
 #include <string_view>
 
 namespace sc {
-    /// SVG to PNG with lunasvg, as bytes. A UTF-8 BOM is allowed. All throw std::invalid_argument
-    /// when the SVG can't be read, parsed or rendered.
+    /// SVG to PNG, as bytes: read by sc-graphics' sc::drawing and drawn on an sc::image (OpenCV),
+    /// so it draws what both do: paths, the basic shapes, groups, transforms, flat colours and
+    /// strokes, and text in OpenCV's Hershey fonts. A UTF-8 BOM is allowed. All throw
+    /// std::invalid_argument when the SVG can't be read.
+    ///
+    /// TODO: gradients, masks, clipping, opacity (transparent parts and backgrounds come out
+    /// opaque, a transparent background white) and text in real fonts.
     class svg2png {
-        static void copy_data(void *target, void *source, int size);
-
-        static std::string PngData(void *data, int width = -1, int height = -1, unsigned background = 0);
-
     public:
-        /// At the SVG's own size, on a transparent background.
+        /// At the SVG's own size, on white.
         static std::string FromString(std::string_view svg_data);
 
         static std::string FromFile(const std::string &filename);
@@ -26,7 +28,7 @@ namespace sc {
 
         static std::string FromFile(const std::string &filename, int width, int height, const color &background);
 
-        /// The SVG's own size in pixels: its width and height, or its viewBox's.
+        /// The SVG's own size in pixels: its viewBox's, or its width and height.
         static size Size(std::string_view svg_data);
     };
 }

@@ -26,6 +26,9 @@ namespace sc {
         /// be read. filename may instead be PNG data itself (as from svg2png).
         image(const std::string &filename);
 
+        /// A blank three-channel image of this size, filled with colour (its alpha ignored).
+        image(size_i size, const color &colour);
+
         /// Creates an image from a contiguous RGB float blob in [1, 3, height, width] order, with
         /// values in [0, 1]. Throws std::invalid_argument on a null blob, a non-positive size or
         /// a value that isn't finite.
@@ -83,6 +86,10 @@ namespace sc {
         void channels(int new_channels);
 
         /// Saves in the format the file's extension names; false if OpenCV couldn't.
+        /// The image as a file's bytes: type is an extension ("png", "jpg", "webp", "bmp", "tiff"),
+        /// quality 1 to 100 for JPEG and WebP. Throws std::runtime_error when OpenCV can't encode it.
+        [[nodiscard]] std::string encoded(const std::string &type = "png", int quality = 95) const;
+
         bool save(const std::string &filename) const;
 
         /// Saved with this quality, 1 to 100, where the format has one (JPEG, WebP); the others
@@ -168,6 +175,10 @@ namespace sc {
     protected:
         // An appearance's stroke and fill in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
+        //
+        // TODO: gradients, masks, clipping (push_clip/pop_clip), opacity (alpha blending), the nonzero
+        // fill rule, and text in real fonts (FreeType outlines from sc-graphics' font_face) instead of
+        // Hershey.
         void paint_polygon(const polygon &shape, const sc::appearance &look) override;
 
         void paint_circle(const sc::circle &shape, const sc::appearance &look) override;

@@ -1,4 +1,4 @@
-// Renders an SVG to PNG (lunasvg), then loads it, resizes it, draws on it and saves it (OpenCV).
+// Renders an SVG to PNG (sc::svg2png), then loads it, resizes it, draws on it and saves it (OpenCV).
 // Each line shows a call, as written, and what it returned. --help lists the options: an image
 // file to start from instead of the built-in SVG. Writes only to the temporary directory.
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
         // [readme]
         if (source.empty()) {
-            sc::console::heading("Rendering an SVG to PNG (lunasvg)");
+            sc::console::heading("Rendering an SVG to PNG (sc::svg2png)");
             const std::string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200">)"
                                     R"(<rect width="320" height="200" fill="#2a6f97"/>)"
                                     R"(<circle cx="160" cy="100" r="70" fill="#f4d35e"/></svg>)";
