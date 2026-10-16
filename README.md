@@ -1,8 +1,8 @@
 # simply-cpp-image
 
 C++20 wrapper around OpenCV for loading, saving, displaying, drawing on and pre-processing images,
-plus SVG rendering (`sc::svg2png`, LunaSVG) and `svg2img`, a tool that turns SVG files into PNG,
-JPEG, WebP, BMP or TIFF images.
+plus SVG rendering (`sc::svg2png`: SVG read by sc-graphics' `sc::drawing`, drawn with OpenCV) and
+`svg2img`, a tool that turns SVG files into PNG, JPEG, WebP, BMP or TIFF images.
 
 **Documentation:** the [simply-cpp wiki](https://github.com/roelofrossouw/simply-cpp/wiki) has an [images guide](https://github.com/roelofrossouw/simply-cpp/wiki/Images) and the [sc-image reference](https://github.com/roelofrossouw/simply-cpp/wiki/Reference-sc-image), plus [getting started](https://github.com/roelofrossouw/simply-cpp/wiki/Getting-Started) for the whole suite.
 
@@ -28,7 +28,8 @@ sudo apt -y install simply-cpp-dev simply-cpp-image-dev
 
 - **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above).
 - **OpenCV** - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
-- **LunaSVG** - fetched and built from source automatically; nothing to install for it.
+- **simply-cpp-graphics (sc-graphics)** - the canvas sc::image implements, and the SVG reader
+  `sc::svg2png` uses.
 
 ## Usage
 
@@ -130,7 +131,13 @@ const sc::size own = sc::svg2png::Size(svg);                                    
 sc::image{big}.save("logo.jpg", 90);                                             // JPEG at quality 90
 ```
 
-A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size.
+A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size. It draws what
+sc-graphics reads and OpenCV draws: paths, the basic shapes, groups, transforms, flat colours and
+strokes, with text in OpenCV's Hershey fonts.
+
+TODO: gradients, masks, clipping, opacity (a transparent background comes out white) and text in
+real fonts. Until then, an SVG that relies on them (icons cut out with masks or clip paths, say)
+draws wrongly.
 
 ## svg2img
 
@@ -145,8 +152,8 @@ svg2img logo.svg -H 300 -b "#ffeedd"     # 300 high, on a cream background
 
 The type comes from `--type` (png, jpg, webp, bmp, tiff), else the output's extension, else PNG;
 without an output the input's name gets the type's extension. `--quality` (1 to 100, 95 by
-default) sets JPEG and WebP quality. Only PNG keeps transparency, so the others go on white unless
-`--background` says otherwise. `--help` lists the options.
+default) sets JPEG and WebP quality. Images go on white unless `--background` gives another colour.
+It draws what `sc::svg2png` does (see the TODO above). `--help` lists the options.
 
 ## Demo
 
@@ -168,7 +175,7 @@ configure time, so it always matches code that compiles:
 <!-- sc-example: examples/sc-image-demo.cpp -->
 ```cpp
 if (source.empty()) {
-    sc::console::heading("Rendering an SVG to PNG (lunasvg)");
+    sc::console::heading("Rendering an SVG to PNG (sc::svg2png)");
     const std::string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200">)"
                             R"(<rect width="320" height="200" fill="#2a6f97"/>)"
                             R"(<circle cx="160" cy="100" r="70" fill="#f4d35e"/></svg>)";

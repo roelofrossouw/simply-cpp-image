@@ -1,5 +1,5 @@
-// svg2img: an SVG file as an image (PNG, JPEG, WebP, BMP or TIFF), rendered with lunasvg at its own
-// size or one given. --help lists the options.
+// svg2img: an SVG file as an image (PNG, JPEG, WebP, BMP or TIFF), at its own size or one given:
+// read by sc-graphics' sc::drawing and drawn on an sc::image (sc::svg2png). --help lists the options.
 
 #include <algorithm>
 #include <cctype>
@@ -33,7 +33,8 @@ int main(int argc, char **argv) {
     const sc::params args{argc, argv, {
         {"name", "svg2img"},
         {"description", "Renders an SVG file as an image: PNG (the default), JPEG, WebP, BMP or TIFF. Without OUTPUT it's written "
-                        "next to INPUT, with the type's extension. Only PNG keeps transparency."},
+                        "next to INPUT, with the type's extension. Not drawn yet: gradients, masks, clipping, transparency and "
+                        "text in real fonts (OpenCV's Hershey fonts stand in)."},
         {"options", {
             {"type", {{"short", "t"}, {"choices", {"png", "jpg", "webp", "bmp", "tiff"}},
                       {"help", "the image type (default: OUTPUT's extension, else png)"}}},
@@ -41,7 +42,7 @@ int main(int argc, char **argv) {
             {"height", {{"short", "H"}, {"type", "integer"}, {"value", "PIXELS"}, {"help", "the height; alone, the width keeps the aspect ratio"}}},
             {"scale", {{"short", "s"}, {"type", "number"}, {"default", 1}, {"help", "the SVG's own size times this, without a width or height"}}},
             {"background", {{"short", "b"}, {"value", "COLOUR"},
-                            {"help", "a CSS colour behind the drawing (default: transparent for PNG, white for the others)"}}},
+                            {"help", "a CSS colour behind the drawing (default: white; transparent isn't drawn yet)"}}},
             {"quality", {{"short", "q"}, {"type", "integer"}, {"default", 95}, {"help", "JPEG and WebP quality, 1 to 100"}}}}},
         {"positional", {
             {"input", {{"help", "the SVG file"}}},
@@ -73,7 +74,7 @@ int main(int argc, char **argv) {
             width = std::max(1, static_cast<int>(std::lround(own.width() * scale)));
             height = std::max(1, static_cast<int>(std::lround(own.height() * scale)));
         }
-        const auto background_name = args.as<std::string>("background", type == "png" ? "transparent" : "white");
+        const auto background_name = args.as<std::string>("background", "white");
         const sc::color background{background_name};
 
         const std::string png = sc::svg2png::FromString(svg, width, height, background);
