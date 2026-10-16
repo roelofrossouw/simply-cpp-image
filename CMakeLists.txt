@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 set(SC_MODULE image)
-project(simply-cpp-${SC_MODULE} LANGUAGES CXX)
+project(simply-cpp-${SC_MODULE} HOMEPAGE_URL "https://github.com/roelofrossouw/simply-cpp-image" LANGUAGES CXX)
 include(cmake/sc_bootstrap.cmake)
 
 # Options:
@@ -13,7 +13,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 ################
 
 # The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
-find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.6.1)
+find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.7.0)
 # sc::canvas, which image implements.
 find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 1.0.1)
 
@@ -70,4 +70,4 @@ add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image
 # Packaging #
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
-package_sc_module(DEPENDS "simply-cpp-dev (>= 1.6.1~)" simply-cpp-lunasvg DEV_DEPENDS "simply-cpp-graphics-dev (>= 1.0.1~)" libopencv-dev)
+package_sc_module(DEPENDS "simply-cpp-dev (>= 1.7.0~)" simply-cpp-lunasvg DEV_DEPENDS "simply-cpp-graphics-dev (>= 1.0.1~)" libopencv-dev)
