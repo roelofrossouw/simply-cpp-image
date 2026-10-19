@@ -15,7 +15,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 # The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 1.9.0)
 # sc::canvas, which image implements, and sc::drawing, which svg2png reads SVG with.
-find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.0.2)
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 5.1.0)
 
 
 ## OpenCV ##
@@ -67,4 +67,4 @@ add_sc_example(svg2img LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 # Packaging #
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
-package_sc_module(DEPENDS "simply-cpp-dev (>= 1.9.0~)" "simply-cpp-graphics (>= 5.0.2~)" DEV_DEPENDS "simply-cpp-graphics-dev (>= 5.0.2~)" libopencv-dev)
+package_sc_module(DEPENDS "simply-cpp-dev (>= 1.9.0~)" "simply-cpp-graphics (>= 5.1.0~)" DEV_DEPENDS "simply-cpp-graphics-dev (>= 5.1.0~)" libopencv-dev)

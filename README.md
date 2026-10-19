@@ -138,8 +138,8 @@ strokes, with text in OpenCV's Hershey fonts.
 Clip paths are drawn, smooth-edged, and so is a white mask (read as a clip); paths fill by their
 fill rule (nonzero or even-odd), open outlines as if closed.
 
-TODO: gradients, masks by their luminance, opacity (a transparent background comes out white) and
-text in real fonts.
+Linear gradients are drawn too. TODO: radial gradients (drawn in their middle colour), masks by
+their luminance, opacity (a transparent background comes out white) and text in real fonts.
 
 ## svg2img
 
