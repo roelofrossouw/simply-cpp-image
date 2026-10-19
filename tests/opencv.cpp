@@ -357,6 +357,38 @@ int main() {
         }
     }
 
+    SECTION("Fill rules: nonzero adds outlines up by direction, even-odd toggles; open outlines fill as if closed");
+    {
+        // Whether the middle of box is painted white (on black).
+        const auto white_at = [](const sc::image &picture, const sc::rect_i &box) {
+            return !picture.cropped(box).find_min_area_rects(box.width() * box.height() / 2.0).empty();
+        };
+        sc::path same_way; // two squares wound the same way, overlapping in 40..60
+        same_way.move_to({10, 10}).line_to({60, 10}).line_to({60, 60}).line_to({10, 60}).close();
+        same_way.move_to({40, 40}).line_to({90, 40}).line_to({90, 90}).line_to({40, 90}).close();
+        sc::image nonzero{sc::size_i{100, 100}, sc::color::Black};
+        nonzero.draw(same_way, sc::appearance::filled(sc::color::White));
+        CHECK(white_at(nonzero, {45, 45, 10, 10})); // the overlap stays filled
+        sc::image even_odd{sc::size_i{100, 100}, sc::color::Black};
+        even_odd.draw(same_way, sc::appearance::filled(sc::fill{sc::color::White, sc::fill_rule::even_odd}));
+        CHECK(!white_at(even_odd, {45, 45, 10, 10})); // the overlap toggles back
+        CHECK(white_at(even_odd, {15, 15, 10, 10}));
+
+        sc::path ring; // an inner square wound the other way: a hole by either rule
+        ring.move_to({10, 10}).line_to({90, 10}).line_to({90, 90}).line_to({10, 90}).close();
+        ring.move_to({30, 30}).line_to({30, 70}).line_to({70, 70}).line_to({70, 30}).close();
+        sc::image holed{sc::size_i{100, 100}, sc::color::Black};
+        holed.draw(ring, sc::appearance::filled(sc::color::White));
+        CHECK(!white_at(holed, {45, 45, 10, 10}));
+        CHECK(white_at(holed, {12, 45, 10, 10}));
+
+        sc::path open; // never closed: filled as if it were
+        open.move_to({10, 10}).line_to({90, 10}).line_to({90, 90}).line_to({10, 90});
+        sc::image filled{sc::size_i{100, 100}, sc::color::Black};
+        filled.draw(open, sc::appearance::filled(sc::color::White));
+        CHECK(white_at(filled, {45, 45, 10, 10}));
+    }
+
     SECTION("Drawing as an sc::canvas");
     {
         const float blank[60 * 40]{};

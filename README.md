@@ -135,10 +135,11 @@ A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size. It 
 sc-graphics reads and OpenCV draws: paths, the basic shapes, groups, transforms, flat colours and
 strokes, with text in OpenCV's Hershey fonts.
 
-Clip paths are drawn, smooth-edged, and so is a white mask (read as a clip).
+Clip paths are drawn, smooth-edged, and so is a white mask (read as a clip); paths fill by their
+fill rule (nonzero or even-odd), open outlines as if closed.
 
-TODO: gradients, masks by their luminance, opacity (a transparent background comes out white), the
-nonzero fill rule (outlines that overlap within one path cancel out) and text in real fonts.
+TODO: gradients, masks by their luminance, opacity (a transparent background comes out white) and
+text in real fonts.
 
 ## svg2img
 

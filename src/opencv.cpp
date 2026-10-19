@@ -486,6 +486,35 @@ namespace sc {
         });
     }
 
+    namespace {
+        // A fill by the nonzero rule, which OpenCV's fillPoly() (even-odd) can't do: each outline's
+        // coverage, antialiased, added with the sign of its direction, so outlines wound the same way
+        // add up and one wound the other way cuts a hole; where the sum isn't 0 is painted, blended
+        // in by its coverage.
+        void fill_nonzero(cv::Mat &target, const std::vector<std::vector<cv::Point> > &outlines, const cv::Scalar &colour) {
+            cv::Rect area;
+            for (const auto &outline: outlines) area |= cv::boundingRect(outline);
+            area &= cv::Rect{0, 0, target.cols, target.rows};
+            if (area.empty()) return;
+            cv::Mat winding = cv::Mat::zeros(area.size(), CV_32F), one;
+            for (const auto &outline: outlines) {
+                if (outline.size() < 3) continue;
+                one = cv::Mat::zeros(area.size(), CV_8U);
+                cv::fillPoly(one, std::vector<std::vector<cv::Point> >{outline}, cv::Scalar{255}, cv::LINE_AA, 0, -area.tl());
+                const double direction = cv::contourArea(outline, true) >= 0 ? 1 : -1;
+                cv::Mat coverage;
+                one.convertTo(coverage, CV_32F, direction / 255);
+                winding += coverage;
+            }
+            cv::Mat alpha = cv::min(cv::abs(winding), 1.0);
+            if (target.channels() > 1) cv::merge(std::vector<cv::Mat>(target.channels(), alpha), alpha);
+            cv::Mat under, painted(area.size(), CV_MAKETYPE(CV_32F, target.channels()), colour);
+            target(area).convertTo(under, CV_32F);
+            cv::Mat blended = under + (painted - under).mul(alpha);
+            blended.convertTo(target(area), target.type());
+        }
+    }
+
     void image::paint_path(const path &shape, const sc::appearance &look) {
         if (empty()) return;
         const auto &stroke = look.stroke();
@@ -497,7 +526,14 @@ namespace sc {
             for (const auto &point: points) outline.push_back(pixel(point));
         }
         clipped(*impl, [&](cv::Mat &target) {
-            if (fill.visible() && !closed.empty()) cv::fillPoly(target, closed, cvcolor(fill.colour(), channels()), cv::LINE_AA);
+            if (fill.visible()) {
+                // Open outlines are filled as if closed, as SVG and PDF fill them.
+                auto filled = closed;
+                for (const auto &outline: open)
+                    if (outline.size() > 2) filled.push_back(outline);
+                if (fill.rule() == fill_rule::nonzero && filled.size() > 1) fill_nonzero(target, filled, cvcolor(fill.colour(), channels()));
+                else if (!filled.empty()) cv::fillPoly(target, filled, cvcolor(fill.colour(), channels()), cv::LINE_AA); // even-odd, or one outline
+            }
             if (stroke.visible()) {
                 cv::polylines(target, closed, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
                 cv::polylines(target, open, false, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
