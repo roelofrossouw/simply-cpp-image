@@ -16,9 +16,6 @@ namespace {
     constexpr int source_width = 640;
     constexpr int source_height = 427;
 
-    // show() opens a window and waits, so it is left out entirely: a headless server
-    // has nothing to display on, and the old test bailed out at the first call.
-
     // push_clip() and pop_clip() are a canvas's primitives, protected: a test reaches them so.
     struct clipping_image : sc::image {
         using sc::image::image;
