@@ -176,9 +176,11 @@ namespace sc {
         // An appearance's stroke and fill in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
         //
-        // TODO: gradients, masks (by luminance; SVG masks are read as clips), opacity (alpha
-        // blending), and text in real fonts (FreeType outlines from sc-graphics' font_face) instead
-        // of Hershey.
+        // A linear gradient fill is drawn too: each pixel the gradient's colour at its centre.
+        //
+        // TODO: radial gradients and gradient strokes, masks (by luminance; SVG masks are read as
+        // clips), opacity (alpha blending), and text in real fonts (FreeType outlines from
+        // sc-graphics' font_face) instead of Hershey.
         void paint_polygon(const polygon &shape, const sc::appearance &look) override;
 
         void paint_circle(const sc::circle &shape, const sc::appearance &look) override;

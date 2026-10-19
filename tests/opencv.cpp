@@ -1,5 +1,6 @@
 #include <image.h>
 
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <limits>
@@ -387,6 +388,32 @@ int main() {
         sc::image filled{sc::size_i{100, 100}, sc::color::Black};
         filled.draw(open, sc::appearance::filled(sc::color::White));
         CHECK(white_at(filled, {45, 45, 10, 10}));
+    }
+
+    SECTION("A linear gradient fill: each pixel the gradient's colour where it falls");
+    {
+        // The colour of one pixel, as red, green and blue from 0 to 1.
+        const auto colour_at = [](const sc::image &picture, const int x, const int y) {
+            auto pixel = picture.cropped(sc::rect_i{x, y, 1, 1});
+            pixel.generate_blob(1.0 / 255, 0, true); // RGB planes
+            const float *rgb = pixel.blob();
+            return std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+        };
+        const sc::linear_gradient red_to_blue{{0, 0}, {100, 0}, {{0, sc::color::Red}, {1, sc::color::Blue}}};
+        sc::image canvas{sc::size_i{100, 40}, sc::color::Black};
+        canvas.draw(sc::rect{0, 0, 100, 20}, sc::appearance::filled(red_to_blue));
+        canvas.draw(sc::circle{{50, 30}, 8}, sc::appearance::filled(red_to_blue));
+        const auto left = colour_at(canvas, 2, 10), middle = colour_at(canvas, 50, 10), right = colour_at(canvas, 97, 10);
+        CHECK_LT(0.9, left[0]);
+        CHECK_LT(left[2], 0.1);
+        CHECK_NEAR(middle[0], 0.5, 0.05);
+        CHECK_NEAR(middle[2], 0.5, 0.05);
+        CHECK_LT(0.9, right[2]);
+        const auto centre = colour_at(canvas, 50, 30); // the circle, halfway along
+        CHECK_NEAR(centre[0], 0.5, 0.05);
+        CHECK_NEAR(centre[2], 0.5, 0.05);
+        const auto outside = colour_at(canvas, 2, 35); // below the rect, beside the circle: untouched
+        CHECK_LT(outside[0] + outside[1] + outside[2], 0.05);
     }
 
     SECTION("Drawing as an sc::canvas");
