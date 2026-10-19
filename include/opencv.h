@@ -185,6 +185,10 @@ namespace sc {
 
         void paint_text(const sc::text &sample, const sc::fill &fill) override;
 
+        // Decoded and resampled into place (bilinear), its alpha honoured with smooth edges.
+        // Throws std::runtime_error when OpenCV can't decode it.
+        void paint_bitmap(const bitmap &picture, const transform &placement) override;
+
         // In pixels, for the Hershey font that draws it; they work on an empty image too.
         double measure_width(const sc::text &sample) override;
 
@@ -197,6 +201,7 @@ namespace sc {
         // other way cuts a hole).
         void paint_path(const path &shape, const sc::appearance &look) override;
 
+    public:
         // Clipped to inside shape's outlines (each filled on its own, so overlapping ones add up,
         // but a hole cut by one inside another isn't), with a smooth edge; clips nest.
         void push_clip(const path &shape) override;
