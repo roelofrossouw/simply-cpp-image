@@ -19,7 +19,10 @@ int main(int argc, char **argv) {
     // The command line: -h/--help comes with sc::params, which also reports mistakes and exits.
     const sc::params args{argc, argv, {
         {"name", "sc-image-transform"},
-        {"description", "Resizes, crops, rotates, straightens, greys and joins an image, and prepares it as a neural network input. Writes only to the temporary directory."},
+        {"description", "Shows what sc::image can do to a picture: resize, crop, rotate and straighten it, turn it grey, join "
+                        "two side by side, and prepare it as a neural network's input. It only writes to the temporary "
+                        "directory, so it's safe to run anywhere.\nMore on the wiki: "
+                        "https://github.com/roelofrossouw/simply-cpp/wiki/Images"},
         {"positional", {
             {"image", {{"required", false}, {"help", "an image to use instead of the built-in SVG"}}}}}}};
 
