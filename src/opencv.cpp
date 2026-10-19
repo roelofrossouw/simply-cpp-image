@@ -547,11 +547,16 @@ namespace sc {
                 .then(placement)
                 .then(transform::translate(-0.5 - area.x, -0.5 - area.y));
         const cv::Mat matrix = (cv::Mat_<double>(2, 3) << pixels.a(), pixels.c(), pixels.e(), pixels.b(), pixels.d(), pixels.f());
-        cv::Mat warped, coverage;
+        // Colours and alpha resampled with their edges carried on; where it ends is the placed
+        // square's own (antialiased) edge, as a polygon's is.
+        cv::Mat warped, opacity;
         cv::warpAffine(colours, warped, matrix, area.size(), cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-        cv::warpAffine(alpha, coverage, matrix, area.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar{0});
+        cv::warpAffine(alpha, opacity, matrix, area.size(), cv::INTER_LINEAR, cv::BORDER_REPLICATE);
         warped.convertTo(warped, CV_MAKETYPE(CV_32F, warped.channels()));
-        clipped(*impl, [&](cv::Mat &target) { blend(target, area, coverage_of(coverage), warped); });
+        std::vector<cv::Point> corners;
+        for (const point &corner: {point{0, 0}, point{1, 0}, point{1, 1}, point{0, 1}}) corners.push_back(pixel(placement.apply(corner)));
+        const cv::Mat coverage = coverage_even_odd(outlines{corners}, area).mul(coverage_of(opacity));
+        clipped(*impl, [&](cv::Mat &target) { blend(target, area, coverage, warped); });
     }
 
     void image::paint_polygon(const polygon &shape, const sc::appearance &look) {

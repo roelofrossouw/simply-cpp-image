@@ -415,10 +415,15 @@ int main() {
         const sc::bitmap dots{sc::base64::decode("iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAEUlEQVR4nGP4z8DAgMAgyAAAO9gF+4ea2nQAAAAASUVORK5CYII=")};
         sc::image canvas{sc::size_i{40, 30}, sc::color::Black};
         canvas.draw(dots, sc::rect{0, 0, 30, 20});
-        CHECK_LT(0.9, colour_at(canvas, 4, 4)[0]);  // red, top left
-        CHECK_LT(0.9, colour_at(canvas, 15, 4)[1]); // green
-        CHECK_LT(0.9, colour_at(canvas, 25, 4)[2]); // blue, top right
-        CHECK_LT(0.9, colour_at(canvas, 4, 15)[2]); // blue, bottom left
+        // Each colour kept before it's checked: CHECK_LT holds what it's given by reference.
+        const auto top_left = colour_at(canvas, 4, 4), top_middle = colour_at(canvas, 15, 4), top_right = colour_at(canvas, 25, 4);
+        const auto bottom_left = colour_at(canvas, 4, 15), corner = colour_at(canvas, 1, 1), far_corner = colour_at(canvas, 28, 18);
+        CHECK_LT(0.9, top_left[0]);    // red, top left
+        CHECK_LT(0.9, top_middle[1]);  // green
+        CHECK_LT(0.9, top_right[2]);   // blue, top right
+        CHECK_LT(0.9, bottom_left[2]); // blue, bottom left
+        CHECK_LT(0.95, corner[0]);     // full to its edges, not faded
+        CHECK_LT(0.95, far_corner[0]);
         const auto outside = colour_at(canvas, 35, 25);
         CHECK_LT(outside[0] + outside[1] + outside[2], 0.05);
 
@@ -427,8 +432,9 @@ int main() {
         mirrored.flip_horizontal();
         sc::image flipped{sc::size_i{30, 20}, sc::color::Black};
         flipped.draw(mirrored);
-        CHECK_LT(0.9, colour_at(flipped, 4, 4)[2]); // blue now top left
-        CHECK_LT(0.9, colour_at(flipped, 25, 4)[0]);
+        const auto mirrored_left = colour_at(flipped, 4, 4), mirrored_right = colour_at(flipped, 25, 4);
+        CHECK_LT(0.9, mirrored_left[2]); // blue now top left
+        CHECK_LT(0.9, mirrored_right[0]);
     }
 
     SECTION("Drawing as an sc::canvas");
