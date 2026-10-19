@@ -177,8 +177,8 @@ namespace sc {
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
         //
         // TODO: gradients, masks (by luminance; SVG masks are read as clips), opacity (alpha
-        // blending), the nonzero fill rule, and text in real fonts (FreeType outlines from
-        // sc-graphics' font_face) instead of Hershey.
+        // blending), and text in real fonts (FreeType outlines from sc-graphics' font_face) instead
+        // of Hershey.
         void paint_polygon(const polygon &shape, const sc::appearance &look) override;
 
         void paint_circle(const sc::circle &shape, const sc::appearance &look) override;
@@ -194,8 +194,9 @@ namespace sc {
 
         double measure_cap_height(const font &font) override;
 
-        // All of a path's outlines filled together, curves as short lines. OpenCV fills by the
-        // even-odd rule whatever the fill's rule: nested outlines are always holes.
+        // All of a path's outlines filled together, curves as short lines, by the fill's rule: even-odd
+        // (every crossing toggles), or nonzero (outlines add up by their direction; one wound the
+        // other way cuts a hole).
         void paint_path(const path &shape, const sc::appearance &look) override;
 
         // Clipped to inside shape's outlines (each filled on its own, so overlapping ones add up,
