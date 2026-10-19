@@ -508,6 +508,52 @@ namespace sc {
         }
     }
 
+    namespace {
+        // A bitmap decoded: its colours as the target's channels, and its alpha (opaque when it has
+        // none), both 8-bit.
+        std::pair<cv::Mat, cv::Mat> decoded(const bitmap &picture, const int channels) {
+            const std::vector<uchar> bytes(picture.bytes().begin(), picture.bytes().end());
+            cv::Mat read = cv::imdecode(bytes, cv::IMREAD_UNCHANGED);
+            if (read.empty()) throw std::runtime_error("sc::image: can't decode the bitmap");
+            if (read.depth() != CV_8U) read.convertTo(read, CV_8U, read.depth() == CV_16U ? 1.0 / 257 : 1);
+            cv::Mat alpha{read.size(), CV_8U, cv::Scalar{255}};
+            if (read.channels() == 2 || read.channels() == 4) {
+                std::vector<cv::Mat> planes;
+                cv::split(read, planes);
+                alpha = planes.back();
+                planes.pop_back();
+                cv::merge(planes, read);
+            }
+            cv::Mat colours;
+            if (read.channels() == channels) colours = read;
+            else if (channels == 1) cv::cvtColor(read, colours, cv::COLOR_BGR2GRAY);
+            else if (read.channels() == 1) cv::cvtColor(read, colours, channels == 4 ? cv::COLOR_GRAY2BGRA : cv::COLOR_GRAY2BGR);
+            else cv::cvtColor(read, colours, cv::COLOR_BGR2BGRA);
+            return {colours, alpha};
+        }
+    }
+
+    void image::paint_bitmap(const bitmap &picture, const transform &placement) {
+        if (empty()) return;
+        const auto [colours, alpha] = decoded(picture, impl->image_mat.channels());
+        const rect box = placement.apply(rect{0, 0, 1, 1}).bounds();
+        const int left = static_cast<int>(std::floor(box.left())), top = static_cast<int>(std::floor(box.top()));
+        const cv::Rect area = cv::Rect{left, top, static_cast<int>(std::ceil(box.right())) - left, static_cast<int>(std::ceil(box.bottom())) - top} &
+                              cv::Rect{0, 0, impl->image_mat.cols, impl->image_mat.rows};
+        if (area.empty()) return;
+        // From the bitmap's pixels to area's, pixel centres to pixel centres.
+        const transform pixels = transform::translate(0.5, 0.5)
+                .then(transform::scale(1 / picture.size().width(), 1 / picture.size().height()))
+                .then(placement)
+                .then(transform::translate(-0.5 - area.x, -0.5 - area.y));
+        const cv::Mat matrix = (cv::Mat_<double>(2, 3) << pixels.a(), pixels.c(), pixels.e(), pixels.b(), pixels.d(), pixels.f());
+        cv::Mat warped, coverage;
+        cv::warpAffine(colours, warped, matrix, area.size(), cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+        cv::warpAffine(alpha, coverage, matrix, area.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar{0});
+        warped.convertTo(warped, CV_MAKETYPE(CV_32F, warped.channels()));
+        clipped(*impl, [&](cv::Mat &target) { blend(target, area, coverage_of(coverage), warped); });
+    }
+
     void image::paint_polygon(const polygon &shape, const sc::appearance &look) {
         if (empty()) return;
         const auto &stroke = look.stroke();

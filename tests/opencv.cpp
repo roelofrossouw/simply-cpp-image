@@ -1,5 +1,7 @@
 #include <image.h>
 
+#include <base64.h>
+
 #include <array>
 #include <cmath>
 #include <filesystem>
@@ -16,12 +18,13 @@ namespace {
     constexpr int source_width = 640;
     constexpr int source_height = 427;
 
-    // push_clip() and pop_clip() are a canvas's primitives, protected: a test reaches them so.
-    struct clipping_image : sc::image {
-        using sc::image::image;
-        using sc::image::push_clip;
-        using sc::image::pop_clip;
-    };
+    // The colour of one pixel, as red, green and blue from 0 to 1.
+    std::array<double, 3> colour_at(const sc::image &picture, const int x, const int y) {
+        auto pixel = picture.cropped(sc::rect_i{x, y, 1, 1});
+        pixel.generate_blob(1.0 / 255, 0, true); // RGB planes
+        const float *rgb = pixel.blob();
+        return std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
+    }
 }
 
 int main() {
@@ -340,7 +343,7 @@ int main() {
         }
 
         // A clip inside another: only their overlap; popping one goes back to the other.
-        clipping_image nested{sc::size_i{100, 100}, sc::color::Black};
+        sc::image nested{sc::size_i{100, 100}, sc::color::Black};
         nested.push_clip(to_path(sc::rect{0, 0, 60, 100}));
         nested.push_clip(to_path(sc::rect{40, 0, 60, 100}));
         nested.draw(sc::rect{0, 0, 100, 50}, sc::appearance::filled(sc::color::White));
@@ -389,13 +392,6 @@ int main() {
 
     SECTION("A linear gradient fill: each pixel the gradient's colour where it falls");
     {
-        // The colour of one pixel, as red, green and blue from 0 to 1.
-        const auto colour_at = [](const sc::image &picture, const int x, const int y) {
-            auto pixel = picture.cropped(sc::rect_i{x, y, 1, 1});
-            pixel.generate_blob(1.0 / 255, 0, true); // RGB planes
-            const float *rgb = pixel.blob();
-            return std::array<double, 3>{rgb[0], rgb[1], rgb[2]};
-        };
         const sc::linear_gradient red_to_blue{{0, 0}, {100, 0}, {{0, sc::color::Red}, {1, sc::color::Blue}}};
         sc::image canvas{sc::size_i{100, 40}, sc::color::Black};
         canvas.draw(sc::rect{0, 0, 100, 20}, sc::appearance::filled(red_to_blue));
@@ -411,6 +407,28 @@ int main() {
         CHECK_NEAR(centre[2], 0.5, 0.05);
         const auto outside = colour_at(canvas, 2, 35); // below the rect, beside the circle: untouched
         CHECK_LT(outside[0] + outside[1] + outside[2], 0.05);
+    }
+
+    SECTION("A bitmap: decoded and stretched into its box, flipped in a drawing");
+    {
+        // 3 by 2: red, green, blue over blue, green, red.
+        const sc::bitmap dots{sc::base64::decode("iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAEUlEQVR4nGP4z8DAgMAgyAAAO9gF+4ea2nQAAAAASUVORK5CYII=")};
+        sc::image canvas{sc::size_i{40, 30}, sc::color::Black};
+        canvas.draw(dots, sc::rect{0, 0, 30, 20});
+        CHECK_LT(0.9, colour_at(canvas, 4, 4)[0]);  // red, top left
+        CHECK_LT(0.9, colour_at(canvas, 15, 4)[1]); // green
+        CHECK_LT(0.9, colour_at(canvas, 25, 4)[2]); // blue, top right
+        CHECK_LT(0.9, colour_at(canvas, 4, 15)[2]); // blue, bottom left
+        const auto outside = colour_at(canvas, 35, 25);
+        CHECK_LT(outside[0] + outside[1] + outside[2], 0.05);
+
+        sc::drawing mirrored{{30, 20}};
+        mirrored.draw(dots, sc::rect{0, 0, 30, 20});
+        mirrored.flip_horizontal();
+        sc::image flipped{sc::size_i{30, 20}, sc::color::Black};
+        flipped.draw(mirrored);
+        CHECK_LT(0.9, colour_at(flipped, 4, 4)[2]); // blue now top left
+        CHECK_LT(0.9, colour_at(flipped, 25, 4)[0]);
     }
 
     SECTION("Drawing as an sc::canvas");
