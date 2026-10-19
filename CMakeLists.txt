@@ -19,7 +19,7 @@ find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 
 
 
 ## OpenCV ##
-set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn highgui)
+set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn)
 if (NOT APPLE)
     list(APPEND SC_IMAGE_OPENCV_COMPONENTS calib3d)
 endif ()

@@ -10,7 +10,6 @@
 #include <vector>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/dnn.hpp>
-#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
@@ -185,14 +184,6 @@ namespace sc {
 
     image::~image() {
         delete impl;
-    }
-
-    bool image::show(int timeout, const std::string &window_name) const {
-#ifdef __APPLE__
-        cv::imshow(window_name, impl->image_mat);
-        if (timeout >= 0) return cv::waitKey(timeout) != 27;
-#endif
-        return true;
     }
 
     size_i image::size() const {

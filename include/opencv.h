@@ -64,10 +64,6 @@ namespace sc {
         /// Replaces this image by transferring storage from another image.
         image &operator=(image &&move_from) noexcept;
 
-        /// Displays the image and returns false when Escape is pressed, in milliseconds: zero waits
-        /// indefinitely, negative doesn't wait. Only on Apple platforms; elsewhere it returns true.
-        bool show(int timeout = 0, const std::string &window_name = "Preview") const;
-
         /// In pixels, padding included.
         [[nodiscard]] size_i size() const;
 

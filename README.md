@@ -86,19 +86,8 @@ To display two equal-height images together:
 sc::image left_face{"left.jpg"};
 sc::image right_face{"right.jpg"};
 const auto comparison = sc::image::side_by_side(left_face, right_face);
-comparison.show(0, "Face comparison");
+comparison.save("comparison.jpg");
 ```
-
-### Displaying an image
-
-```cpp
-sc::image image{"input.jpg"};
-if (!image.show(1000, "Preview")) {
-    // The user pressed Escape.
-}
-```
-
-On Apple platforms, `show()` returns `false` when the Escape key closes the preview after a non-negative wait. Its return value may be intentionally ignored. On other platforms the current implementation does not open a window and returns `true`.
 
 ### DNN preprocessing
 
@@ -213,7 +202,7 @@ More demos, installed alongside it, each runnable without arguments (`sc-image-t
 
 - CMake 3.22 or newer
 - A C++20 compiler
-- OpenCV with the `core`, `ml`, `imgproc`, `imgcodecs`, `dnn`, `highgui`, and (on non-Apple platforms) `calib3d` components - install it yourself before configuring if you're not using the Homebrew/apt package (see Dependencies above)
+- OpenCV with the `core`, `ml`, `imgproc`, `imgcodecs`, `dnn`, and (on non-Apple platforms) `calib3d` components - install it yourself before configuring if you're not using the Homebrew/apt package (see Dependencies above)
 
 ## Building and testing
 
