@@ -17,7 +17,9 @@ int main(int argc, char **argv) {
     // The command line: -h/--help comes with sc::params, which also reports mistakes and exits.
     const sc::params args{argc, argv, {
         {"name", "sc-image-demo"},
-        {"description", "Renders an SVG to PNG, then loads, resizes, draws on and saves it. Writes only to the temporary directory."},
+        {"description", "Renders an SVG to a PNG, then loads it back, resizes it, draws on it and saves the result: the round "
+                        "trip from vector graphics to pixels. It only writes to the temporary directory.\nMore on the wiki: "
+                        "https://github.com/roelofrossouw/simply-cpp/wiki/Images"},
         {"positional", {
             {"image", {{"required", false}, {"help", "an image to start from instead of the built-in SVG"}}}}}}};
 
