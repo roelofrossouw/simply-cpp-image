@@ -3,6 +3,10 @@
 #include <base64.h>
 
 #include <array>
+#include <cstdio>
+#include <fstream>
+#include <iterator>
+#include <unistd.h>
 #include <cmath>
 #include <filesystem>
 #include <limits>
@@ -479,6 +483,49 @@ int main() {
         CHECK_EQ(empty.text_width(label), width); // no pixels needed to measure
         CHECK_LT(canvas.text_x_height({"sans-serif", 20}), canvas.text_cap_height({"sans-serif", 20}));
         CHECK_BETWEEN(canvas.text_cap_height({"sans-serif", 20}), 10.0, 22.0);
+    }
+
+    SECTION("libjpeg's warnings about a damaged JPEG follow the log level (on Linux)");
+    {
+        CHECK(sc::image::log_level() == sc::log_level::warning);
+        const auto directory = std::filesystem::temp_directory_path() / "sc-image-log-level";
+        std::filesystem::create_directories(directory);
+        const auto whole = directory / "whole.jpg", damaged = directory / "damaged.jpg";
+        sc::image{sc::size_i{64, 64}, sc::color{0.2, 0.6, 0.3}}.save(whole.string());
+        std::filesystem::copy_file(whole, damaged, std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::resize_file(damaged, std::filesystem::file_size(whole) * 2 / 3); // cut short
+
+        // What reading it writes to stderr (libjpeg writes there itself, not to std::cerr).
+        const auto stderr_of = [&](const sc::log_level level) {
+            sc::image::log_level(level);
+            const auto captured = directory / "stderr.txt";
+            std::fflush(stderr);
+            const int saved = dup(fileno(stderr));
+            std::FILE *file = std::fopen(captured.c_str(), "w");
+            dup2(fileno(file), fileno(stderr));
+            try {
+                sc::image read{damaged.string()};
+            } catch (const std::exception &) {
+                // read as far as it goes, or not at all: either way, only the output counts here
+            }
+            std::fflush(stderr);
+            dup2(saved, fileno(stderr));
+            close(saved);
+            std::fclose(file);
+            std::ifstream in{captured};
+            return std::string{std::istreambuf_iterator<char>{in}, {}};
+        };
+        const auto quiet = stderr_of(sc::log_level::error);
+        const auto told = stderr_of(sc::log_level::warning);
+#ifdef __linux__
+        CHECK(quiet.empty());
+        CHECK(told.find("JPEG") != std::string::npos);
+#else
+        (void) quiet; // elsewhere libjpeg writes its warnings whatever the level
+        (void) told;
+#endif
+        sc::image::log_level(sc::log_level::warning);
+        std::filesystem::remove_all(directory);
     }
 
     TEST_SUMMARY();
