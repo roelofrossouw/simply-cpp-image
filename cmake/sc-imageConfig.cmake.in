@@ -1,7 +1,7 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(sc-core)
+find_dependency(sc-core 1.18.0) # log_level.h
 find_dependency(sc-graphics)
 find_dependency(OpenCV CONFIG COMPONENTS @SC_IMAGE_OPENCV_COMPONENTS@)
 
