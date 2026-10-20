@@ -2,6 +2,7 @@
 #include "internals.h"
 
 #include <opencv2/videoio.hpp>
+#include <opencv2/videoio/registry.hpp>
 
 #include <cmath>
 #include <stdexcept>
@@ -26,7 +27,10 @@ namespace sc {
 
     video::video(const std::filesystem::path &file) : impl(std::make_unique<impl::video_internals>()) {
         if (!std::filesystem::exists(file)) throw std::runtime_error("sc::video: no such file " + file.string());
-        if (!impl->capture.open(file.string()) || !impl->capture.isOpened())
+        // FFmpeg alone where OpenCV has it: the others (GStreamer on Linux) would only be tried
+        // after it for a file it can't read, and fill the log with their own complaints.
+        static const bool ffmpeg = cv::videoio_registry::hasBackend(cv::CAP_FFMPEG);
+        if (!impl->capture.open(file.string(), ffmpeg ? cv::CAP_FFMPEG : cv::CAP_ANY) || !impl->capture.isOpened())
             throw std::runtime_error("sc::video: can't read " + file.string() + " as a video");
         impl->fps = impl->capture.get(cv::CAP_PROP_FPS);
         if (!std::isfinite(impl->fps) || impl->fps < 0) impl->fps = 0;

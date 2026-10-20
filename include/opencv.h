@@ -24,7 +24,8 @@ namespace sc {
         /// JPEG data: premature end of data segment", the image still read as far as it goes) are
         /// warnings, written at warning (the default) and above: log_level(sc::log_level::error)
         /// keeps them quiet. On Linux, where OpenCV uses the system's libjpeg; elsewhere they're
-        /// always written.
+        /// always written. OpenCV's own messages follow it too, and below warning so do FFmpeg's
+        /// about videos it can't read ("moov atom not found"): set it before opening a video.
         static void log_level(sc::log_level level);
         [[nodiscard]] static sc::log_level log_level();
 

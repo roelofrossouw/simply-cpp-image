@@ -13,10 +13,11 @@
 #include <opencv2/dnn.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/utils/logger.hpp>
 #include <atomic>
+#include <cstdlib> // setenv
 #ifdef __linux__
 #include <cstdio>
-#include <cstdlib>
 #include <dlfcn.h>
 #include <jpeglib.h>
 #endif
@@ -27,6 +28,17 @@ namespace {
 
 void sc::image::log_level(const sc::log_level level) {
     image_log_level.store(static_cast<int>(level), std::memory_order_relaxed);
+    // OpenCV's own messages ("[ WARN:0@93.9] ... GStreamer warning") follow the same level. So do
+    // FFmpeg's ("moov atom not found", a video cut short) below warning, through OpenCV's setting
+    // for them, which OpenCV reads when it opens the first video: so set the level before that.
+    using namespace cv::utils::logging;
+    const auto opencv = level >= sc::log_level::debug ? LOG_LEVEL_DEBUG
+                        : level >= sc::log_level::info ? LOG_LEVEL_INFO
+                        : level >= sc::log_level::warning ? LOG_LEVEL_WARNING
+                        : level >= sc::log_level::error ? LOG_LEVEL_ERROR
+                        : LOG_LEVEL_FATAL;
+    setLogLevel(opencv);
+    if (level < sc::log_level::warning) setenv("OPENCV_FFMPEG_LOGLEVEL", "-8", 1); // AV_LOG_QUIET
 }
 
 sc::log_level sc::image::log_level() {
