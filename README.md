@@ -27,7 +27,7 @@ sudo apt -y install simply-cpp-dev simply-cpp-image-dev
 ## Dependencies
 
 - **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above).
-- **OpenCV** - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
+- **OpenCV** (core, imgproc, imgcodecs, dnn, ml and videoio) - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
 - **simply-cpp-graphics (sc-graphics)** - the canvas sc::image implements, and the SVG reader
   `sc::svg2png` uses.
 
@@ -130,6 +130,25 @@ fill rule (nonzero or even-odd), open outlines as if closed.
 Images (PNG or JPEG, an `sc::bitmap`, an SVG `<image>`'s data: URI) are decoded and resampled into
 place, their alpha honoured. Linear gradients are drawn too. TODO: radial gradients (drawn in their middle colour), masks by
 their luminance, opacity (a transparent background comes out white) and text in real fonts.
+
+### Video files
+
+`sc::video` (`video.h`) reads a video a frame at a time through OpenCV's videoio (FFmpeg on Ubuntu
+and Homebrew, so MP4, MOV, MKV, AVI and the rest). Each frame is an `sc::image`, three-channel BGR
+like a loaded photo, with its number and its time in the video:
+
+```cpp
+sc::video clip{"dashcam.mp4"};                      // throws std::runtime_error if it isn't a video
+clip.size();                                        // [704,576]: pixels
+clip.fps();                                         // 15: frames a second, as the file declares
+clip.duration();                                    // 15000ms
+while (const auto frame = clip.next(std::chrono::seconds(1))) // a frame a second; next() gives every one
+    frame->picture.save("at-" + std::to_string(frame->time.count()) + "ms.jpg");
+```
+
+`next(every)` takes the frame nearest each time `every` apart (the first frame's, then every after
+it, within half a frame), so a frame rate that doesn't divide `every` doesn't make them drift; the
+frames between are skipped without being decoded. sc-ai's `sc-ai-demo --video` runs YOLO this way.
 
 ## svg2img
 

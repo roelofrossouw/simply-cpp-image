@@ -209,6 +209,8 @@ namespace sc {
         void pop_clip() override;
 
     private:
+        friend class video; // makes its frames
+
         impl::internals *impl;
         float features[512];
         size_i size_;

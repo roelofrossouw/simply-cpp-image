@@ -19,7 +19,7 @@ find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 
 
 
 ## OpenCV ##
-set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn)
+set(SC_IMAGE_OPENCV_COMPONENTS core ml imgproc imgcodecs dnn videoio)
 if (NOT APPLE)
     list(APPEND SC_IMAGE_OPENCV_COMPONENTS calib3d)
 endif ()
@@ -34,6 +34,9 @@ set(SOURCE_LINK_LIBRARIES)
 # SVG to PNG: sc-graphics' drawing, drawn by the opencv object.
 add_sc_object(svg2png LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
 add_sc_object(opencv LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
+        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
+# Video files read frame by frame (OpenCV's videoio), each frame an sc::image.
+add_sc_object(video LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
         PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
 
 ######################
