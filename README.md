@@ -89,6 +89,15 @@ const auto comparison = sc::image::side_by_side(left_face, right_face);
 comparison.save("comparison.jpg");
 ```
 
+### Warnings about damaged files
+
+libjpeg warns on stderr about a damaged JPEG ("Corrupt JPEG data: premature end of data
+segment") while reading it as far as it goes. On Linux these follow `sc::image`'s log level:
+written at `sc::log_level::warning` (the default) and above, so
+`sc::image::log_level(sc::log_level::error)` keeps them quiet. (OpenCV, which reads the files,
+has no setting for this, so sc-image takes the place of libjpeg's `jpeg_std_error()`; on macOS
+the warnings are always written.)
+
 ### DNN preprocessing
 
 Call `generate_blob()` before accessing `blob()`, `blob_size()`, or the blob shape methods. The returned pointers refer to storage owned by the `image` object and can be invalidated by subsequent image processing.

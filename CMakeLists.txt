@@ -33,8 +33,15 @@ set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
 # SVG to PNG: sc-graphics' drawing, drawn by the opencv object.
 add_sc_object(svg2png LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
-add_sc_object(opencv LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
-        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
+# On Linux it also quiets libjpeg's warnings below image's log level, needing libjpeg's header
+# (the library itself comes with OpenCV).
+set(SC_IMAGE_JPEG_INCLUDE)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_or_install_package(JPEG libjpeg-dev jpeg)
+    set(SC_IMAGE_JPEG_INCLUDE ${JPEG_INCLUDE_DIRS})
+endif ()
+add_sc_object(opencv INCLUDE_DIRS ${SC_IMAGE_JPEG_INCLUDE} LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS}
+        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS})
 # Video files read frame by frame (OpenCV's videoio), each frame an sc::image.
 add_sc_object(video LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
         PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})

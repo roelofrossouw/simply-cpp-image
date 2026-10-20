@@ -13,6 +13,58 @@
 #include <opencv2/dnn.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
+#include <atomic>
+#ifdef __linux__
+#include <cstdio>
+#include <cstdlib>
+#include <dlfcn.h>
+#include <jpeglib.h>
+#endif
+
+namespace {
+    std::atomic<int> image_log_level{static_cast<int>(sc::log_level::warning)};
+}
+
+void sc::image::log_level(const sc::log_level level) {
+    image_log_level.store(static_cast<int>(level), std::memory_order_relaxed);
+}
+
+sc::log_level sc::image::log_level() {
+    return static_cast<sc::log_level>(image_log_level.load(std::memory_order_relaxed));
+}
+
+#ifdef __linux__
+// OpenCV reads JPEGs with the system's libjpeg and keeps its default message output, which writes
+// warnings (a damaged file read as far as it goes) to stderr. OpenCV has no setting for that, so
+// this takes the place of libjpeg's jpeg_std_error() (found first, as it's in this library or the
+// program): it sets things up as libjpeg's own does, then sends messages through image's log
+// level. libjpeg's errors don't come here: OpenCV handles those itself.
+namespace {
+    using std_error_function = jpeg_error_mgr *(*)(jpeg_error_mgr *);
+    void (*libjpeg_output)(j_common_ptr) = nullptr; // libjpeg's own output_message
+
+    void output_message(const j_common_ptr info) {
+        if (image_log_level.load(std::memory_order_relaxed) >= static_cast<int>(sc::log_level::warning) && libjpeg_output)
+            libjpeg_output(info);
+    }
+}
+
+extern "C" __attribute__((visibility("default"))) jpeg_error_mgr *jpeg_std_error(jpeg_error_mgr *err) {
+    static const auto libjpeg = [] {
+        auto found = reinterpret_cast<std_error_function>(dlvsym(RTLD_NEXT, "jpeg_std_error", "LIBJPEG_8.0"));
+        if (!found) found = reinterpret_cast<std_error_function>(dlsym(RTLD_NEXT, "jpeg_std_error"));
+        return found;
+    }();
+    if (!libjpeg) { // can't happen while libjpeg is loaded, which a caller of this needs
+        std::fputs("sc-image: libjpeg's jpeg_std_error not found\n", stderr);
+        std::abort();
+    }
+    jpeg_error_mgr *const result = libjpeg(err);
+    libjpeg_output = result->output_message;
+    result->output_message = output_message;
+    return result;
+}
+#endif
 
 namespace {
     cv::Point cvpoint(const sc::point_i &rhs) {

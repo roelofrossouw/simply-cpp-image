@@ -1,4 +1,5 @@
 #pragma once
+#include <log_level.h>
 #include <array>
 #include <string>
 #include <vector>
@@ -19,6 +20,14 @@ namespace sc {
     /// measured (canvas::text_width() and the rest) in the same font.
     class image : public canvas {
     public:
+        /// What reading images writes to stderr. libjpeg's warnings about a damaged JPEG ("Corrupt
+        /// JPEG data: premature end of data segment", the image still read as far as it goes) are
+        /// warnings, written at warning (the default) and above: log_level(sc::log_level::error)
+        /// keeps them quiet. On Linux, where OpenCV uses the system's libjpeg; elsewhere they're
+        /// always written.
+        static void log_level(sc::log_level level);
+        [[nodiscard]] static sc::log_level log_level();
+
         /// Creates an empty image.
         image();
 
