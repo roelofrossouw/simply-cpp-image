@@ -1,4 +1,5 @@
 #include "opencv.h"
+#include "internals.h"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -33,17 +34,6 @@ namespace {
 }
 
 namespace sc {
-    namespace impl {
-        struct internals {
-            cv::Mat image_mat;
-            cv::Mat blob_mat;
-            std::span<float> blob_data;
-            std::vector<int64_t> blob_shape;
-            size_i padding;
-            std::vector<cv::Mat> clips; // pushed clip masks, each already within the one before
-        };
-    }
-
     image::image() : impl(new impl::internals()) {
     }
 
