@@ -1,6 +1,7 @@
 #pragma once
 #include <log_level.h>
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
 #include <sc.h>
@@ -113,9 +114,6 @@ namespace sc {
         /// pixels; those with an area under minimum_area (pixels) are left out.
         [[nodiscard]] std::vector<rotated_rect> find_min_area_rects(double minimum_area = 0, int method = 2) const;
 
-        /// Dilates in place with a rectangular kernel of size pixels.
-        void dilate(size_i size = {5, 3});
-
         /// Both images joined horizontally; they must be non-empty, of equal height and channels.
         static image side_by_side(const image &left, const image &right);
 
@@ -221,8 +219,7 @@ namespace sc {
     private:
         friend class video; // makes its frames
 
-        impl::internals *impl;
-        float features[512];
+        std::unique_ptr<impl::internals> impl;
         size_i size_;
     };
 } // sc

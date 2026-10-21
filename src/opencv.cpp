@@ -1,10 +1,9 @@
 #include "opencv.h"
 #include "internals.h"
 #include <algorithm>
-#include <cctype>
 #include <filesystem>
 #include <cmath>
-#include <cstring>
+#include <numbers>
 #include <stdexcept>
 #include <span>
 #include <utility>
@@ -83,25 +82,25 @@ namespace {
         return {rhs.x(), rhs.y()};
     }
 
-    cv::Point2d cvpoint(const sc::point &rhs) {
-        return {rhs.x(), rhs.y()};
-    }
-
     cv::Size cvsize(const sc::size_i &rhs) {
         return {rhs.width(), rhs.height()};
     }
 
-    cv::Size2d cvsize(const sc::size &rhs) {
-        return {rhs.width(), rhs.height()};
+    // Only the format's own quality setting: OpenCV warns about any other. extension is lowercase,
+    // with its dot.
+    std::vector<int> quality_settings(const std::string &extension, const int quality) {
+        const int q = std::clamp(quality, 1, 100);
+        if (extension == ".jpg" || extension == ".jpeg") return {cv::IMWRITE_JPEG_QUALITY, q};
+        if (extension == ".webp") return {cv::IMWRITE_WEBP_QUALITY, q};
+        return {};
     }
-
 }
 
 namespace sc {
-    image::image() : impl(new impl::internals()) {
+    image::image() : impl(std::make_unique<impl::internals>()) {
     }
 
-    image::image(const std::string &filename) : impl(new impl::internals()) {
+    image::image(const std::string &filename) : impl(std::make_unique<impl::internals>()) {
         const std::string png_signature{"\x89PNG\r\n\x1A\n", 8};
         if (filename.substr(0, 8) == png_signature) {
             std::vector<uchar> buffer(filename.begin(), filename.end());
@@ -113,7 +112,7 @@ namespace sc {
         size_ = {impl->image_mat.cols, impl->image_mat.rows};
     }
 
-    image::image(const size_i size, const color &colour) : impl(new impl::internals()) {
+    image::image(const size_i size, const color &colour) : impl(std::make_unique<impl::internals>()) {
         if (size.width() <= 0 || size.height() <= 0) throw std::invalid_argument{"sc::image: a blank image needs a size above 0"};
         const auto channel = [](const double v) { return std::clamp(v, 0.0, 1.0) * 255; };
         impl->image_mat = cv::Mat(size.height(), size.width(), CV_8UC3, cv::Scalar{channel(colour.blue()), channel(colour.green()), channel(colour.red())});
@@ -121,12 +120,8 @@ namespace sc {
     }
 
     std::string image::encoded(const std::string &type, const int quality) const {
-        auto extension = type.starts_with('.') ? type : "." + type;
-        std::ranges::transform(extension, extension.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        const int q = std::clamp(quality, 1, 100);
-        std::vector<int> settings; // only the format's own: OpenCV warns about any other
-        if (extension == ".jpg" || extension == ".jpeg") settings = {cv::IMWRITE_JPEG_QUALITY, q};
-        if (extension == ".webp") settings = {cv::IMWRITE_WEBP_QUALITY, q};
+        const auto extension = sc::lowercase(type.starts_with('.') ? type : "." + type);
+        const auto settings = quality_settings(extension, quality);
         std::vector<uchar> bytes;
         bool done = false;
         try {
@@ -189,7 +184,7 @@ namespace sc {
         return result;
     }
 
-    image::image(const image &copy_from) : impl(new impl::internals()) {
+    image::image(const image &copy_from) : impl(std::make_unique<impl::internals>()) {
         impl->image_mat = copy_from.impl->image_mat.clone();
         impl->blob_mat = copy_from.impl->blob_mat.clone();
         impl->blob_shape = copy_from.impl->blob_shape;
@@ -198,35 +193,19 @@ namespace sc {
                               : std::span<float>{impl->blob_mat.ptr<float>(), impl->blob_mat.total()};
         impl->padding = copy_from.impl->padding;
         size_ = copy_from.size_;
-        std::memcpy(features, copy_from.features, sizeof(features));
     }
 
-    image::image(image &&move_from) noexcept
-        : impl(move_from.impl), features{}, size_(move_from.size_) {
-        std::memcpy(features, move_from.features, sizeof(features));
-        move_from.impl = nullptr;
-        move_from.size_ = {};
-    }
+    image::image(image &&move_from) noexcept = default;
 
     image &image::operator=(const image &copy_from) {
         if (this == &copy_from) return *this;
         image copy{copy_from};
         std::swap(impl, copy.impl);
         std::swap(size_, copy.size_);
-        std::memcpy(features, copy.features, sizeof(features));
         return *this;
     }
 
-    image &image::operator=(image &&move_from) noexcept {
-        if (this == &move_from) return *this;
-        delete impl;
-        impl = move_from.impl;
-        size_ = move_from.size_;
-        std::memcpy(features, move_from.features, sizeof(features));
-        move_from.impl = nullptr;
-        move_from.size_ = {};
-        return *this;
-    }
+    image &image::operator=(image &&move_from) noexcept = default;
 
     void image::image_changed() {
         impl->padding = {0, 0};
@@ -236,9 +215,7 @@ namespace sc {
         size_ = {impl->image_mat.cols, impl->image_mat.rows};
     }
 
-    image::~image() {
-        delete impl;
-    }
+    image::~image() = default;
 
     size_i image::size() const {
         return size_;
@@ -278,13 +255,8 @@ namespace sc {
     }
 
     bool image::save(const std::string &filename, const int quality) const {
-        // Only the format's own setting: OpenCV warns about any other.
-        auto extension = std::filesystem::path{filename}.extension().string();
-        std::ranges::transform(extension, extension.begin(), [](const unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        const int q = std::clamp(quality, 1, 100);
-        if (extension == ".jpg" || extension == ".jpeg") return cv::imwrite(filename, impl->image_mat, {cv::IMWRITE_JPEG_QUALITY, q});
-        if (extension == ".webp") return cv::imwrite(filename, impl->image_mat, {cv::IMWRITE_WEBP_QUALITY, q});
-        return cv::imwrite(filename, impl->image_mat);
+        const auto extension = sc::lowercase(std::filesystem::path{filename}.extension().string());
+        return cv::imwrite(filename, impl->image_mat, quality_settings(extension, quality));
     }
 
     image image::resized(const size_i new_size) const {
@@ -333,11 +305,6 @@ namespace sc {
             rectangles.emplace_back(static_cast<rotated_rect>(polygon_i{std::move(corners)}));
         }
         return rectangles;
-    }
-
-    void image::dilate(size_i size) {
-        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cvsize(size));
-        cv::dilate(impl->image_mat, impl->image_mat, kernel);
     }
 
     image image::side_by_side(const image &left, const image &right) {
@@ -399,7 +366,7 @@ namespace sc {
             static_cast<float>(bounds.center().y() - source_bounds.y)
         };
         cv::Mat transform = cv::getRotationMatrix2D(crop_center, bounds.angle(), 1.0);
-        const double radians = bounds.angle() * std::acos(-1.0) / 180.0;
+        const double radians = bounds.angle() * std::numbers::pi / 180.0;
         const int rotated_width = std::max(1, cvRound(source_crop.cols * std::abs(std::cos(radians)) +
                                                       source_crop.rows * std::abs(std::sin(radians))));
         const int rotated_height = std::max(1, cvRound(source_crop.rows * std::abs(std::cos(radians)) +
@@ -462,30 +429,6 @@ namespace sc {
 
         cv::Point pixel(const point &value) {
             return {detail::polygon_coordinate(value.x()), detail::polygon_coordinate(value.y())};
-        }
-    }
-
-    namespace {
-        // Runs paint on the image, or, inside a clip, on a copy that's blended back through the
-        // clip's mask (antialiased, so the clip's edge is smooth).
-        template<typename Paint>
-        void clipped(impl::internals &in, Paint paint) {
-            if (in.clips.empty() || in.clips.back().size() != in.image_mat.size()) {
-                paint(in.image_mat);
-                return;
-            }
-            const cv::Mat &mask = in.clips.back();
-            const cv::Rect area = cv::boundingRect(mask);
-            if (area.empty()) return; // the clip shows nothing
-            cv::Mat copy = in.image_mat.clone();
-            paint(copy);
-            cv::Mat alpha, painted, under;
-            mask(area).convertTo(alpha, CV_32F, 1.0 / 255);
-            if (in.image_mat.channels() > 1) cv::merge(std::vector<cv::Mat>(in.image_mat.channels(), alpha), alpha);
-            copy(area).convertTo(painted, CV_32F);
-            in.image_mat(area).convertTo(under, CV_32F);
-            cv::Mat blended = under + (painted - under).mul(alpha);
-            blended.convertTo(in.image_mat(area), in.image_mat.type());
         }
     }
 
@@ -559,6 +502,26 @@ namespace sc {
             if (area.empty()) return;
             const bool nonzero = fill.rule() == fill_rule::nonzero && shape.size() > 1;
             blend(target, area, nonzero ? coverage_nonzero(shape, area) : coverage_even_odd(shape, area), fill_colours(fill, area, target.channels()));
+        }
+    }
+
+    namespace {
+        // Runs paint on the image, or, inside a clip, on a copy that's blended back through the
+        // clip's mask (antialiased, so the clip's edge is smooth).
+        template<typename Paint>
+        void clipped(impl::internals &in, Paint paint) {
+            if (in.clips.empty() || in.clips.back().size() != in.image_mat.size()) {
+                paint(in.image_mat);
+                return;
+            }
+            const cv::Mat &mask = in.clips.back();
+            const cv::Rect area = cv::boundingRect(mask);
+            if (area.empty()) return; // the clip shows nothing
+            cv::Mat copy = in.image_mat.clone();
+            paint(copy);
+            cv::Mat painted;
+            copy(area).convertTo(painted, CV_32F);
+            blend(in.image_mat, area, coverage_of(mask(area)), painted);
         }
     }
 
@@ -739,23 +702,29 @@ namespace sc {
         impl->blob_data = {impl->blob_mat.ptr<float>(), impl->blob_mat.total()};
     }
 
+    namespace {
+        void require_blob(const impl::internals &in) {
+            if (in.blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
+        }
+    }
+
     float *image::blob() const {
-        if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
+        require_blob(*impl);
         return impl->blob_data.data();
     }
 
     size_t image::blob_size() const {
-        if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
+        require_blob(*impl);
         return impl->blob_data.size();
     }
 
     const int64_t *image::blob_shape() const {
-        if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
+        require_blob(*impl);
         return impl->blob_shape.data();
     }
 
     size_t image::blob_shape_size() const {
-        if (impl->blob_mat.empty()) throw std::runtime_error{"Blob not generated"};
+        require_blob(*impl);
         return impl->blob_shape.size();
     }
 
