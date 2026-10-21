@@ -30,7 +30,6 @@ namespace sc {
         static void log_level(sc::log_level level);
         [[nodiscard]] static sc::log_level log_level();
 
-        /// Creates an empty image.
         image();
 
         /// Loads an image from a file as three-channel BGR, throwing std::runtime_error if it can't
@@ -69,10 +68,8 @@ namespace sc {
 
         ~image() override;
 
-        /// Replaces this image with an independent copy of another image.
         image &operator=(const image &copy_from);
 
-        /// Replaces this image by transferring storage from another image.
         image &operator=(image &&move_from) noexcept;
 
         /// In pixels, padding included.
@@ -92,11 +89,11 @@ namespace sc {
         /// Converts between grey (1) and BGR (3) in place, dropping the blob; throws on an empty image.
         void channels(int new_channels);
 
-        /// Saves in the format the file's extension names; false if OpenCV couldn't.
         /// The image as a file's bytes: type is an extension ("png", "jpg", "webp", "bmp", "tiff"),
         /// quality 1 to 100 for JPEG and WebP. Throws std::runtime_error when OpenCV can't encode it.
         [[nodiscard]] std::string encoded(const std::string &type = "png", int quality = 95) const;
 
+        /// Saves in the format the file's extension names; false if OpenCV couldn't.
         bool save(const std::string &filename) const;
 
         /// Saved with this quality, 1 to 100, where the format has one (JPEG, WebP); the others
@@ -157,16 +154,13 @@ namespace sc {
         /// grey (114) to that size, in place; padding() then gives the padding on each side.
         void snap_to_size(int stride = 32, const std::vector<size_i> &valid = {});
 
-        /// Returns the generated DNN blob data; throws if no blob exists.
+        /// The generate_blob() blob; these throw std::runtime_error when there is none.
         [[nodiscard]] float *blob() const;
 
-        /// Returns the number of values in the generated DNN blob; throws if absent.
         [[nodiscard]] size_t blob_size() const;
 
-        /// Returns the dimensions of the generated DNN blob; throws if absent.
         [[nodiscard]] const int64_t *blob_shape() const;
 
-        /// Returns the number of dimensions in the blob shape; throws if absent.
         [[nodiscard]] size_t blob_shape_size() const;
 
         /// A copy warped (rotation, uniform scale and shift, fitted to five point pairs, as face
