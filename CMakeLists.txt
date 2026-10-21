@@ -28,7 +28,7 @@ find_or_install_package(OpenCV libopencv-dev opencv COMPONENTS ${SC_IMAGE_OPENCV
 ###########
 # Objects #
 ###########
-set(SOURCE_OBJECTS include/image.h src/image.cpp)
+set(SOURCE_OBJECTS include/image.h)
 set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
 # SVG to PNG: sc-graphics' drawing, drawn by the opencv object.
