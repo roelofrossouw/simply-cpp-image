@@ -563,7 +563,7 @@ namespace sc {
                 .then(transform::scale(1 / picture.size().width(), 1 / picture.size().height()))
                 .then(placement)
                 .then(transform::translate(-0.5 - area.x, -0.5 - area.y));
-        const cv::Mat matrix = (cv::Mat_<double>(2, 3) << pixels.a(), pixels.c(), pixels.e(), pixels.b(), pixels.d(), pixels.f());
+        const cv::Mat matrix{cv::Matx23d{pixels.a(), pixels.c(), pixels.e(), pixels.b(), pixels.d(), pixels.f()}};
         // Colours and alpha resampled with their edges carried on; where it ends is the placed
         // square's own (antialiased) edge, as a polygon's is.
         cv::Mat warped, opacity;
