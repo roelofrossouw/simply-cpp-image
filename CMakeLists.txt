@@ -77,4 +77,7 @@ add_sc_example(svg2img LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 # Packaging #
 #############
 set(CPACK_COMPONENTS_ALL runtime development)
-package_sc_module(DEPENDS "simply-cpp-dev (>= 1.20.0~)" "simply-cpp-graphics (>= 6.3.0~)" DEV_DEPENDS "simply-cpp-graphics-dev (>= 6.3.0~)" libopencv-dev)
+# The library has sc-core built in; the tools and demos load libsc-core-shared (simply-cpp), and
+# the CMake config finds sc-core (simply-cpp-dev).
+package_sc_module(DEPENDS "simply-cpp (>= 1.20.0~)" "simply-cpp-graphics (>= 6.3.0~)"
+        DEV_DEPENDS "simply-cpp-dev (>= 1.20.0~)" "simply-cpp-graphics-dev (>= 6.3.0~)" libopencv-dev)
