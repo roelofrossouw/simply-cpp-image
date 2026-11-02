@@ -12,9 +12,14 @@ add_dependencies(test-svg2png copy_sc_image_resources)
 add_sc_test(opencv LABELS unit)
 add_dependencies(test-opencv copy_sc_image_resources)
 add_sc_test(video LABELS unit)
+add_sc_test(image_quality LABELS unit)
 
 # The svg2img tool, run as a user would: a file next to its input, and another type and size.
 add_test(NAME test-svg2img COMMAND svg2img ${RESOURCE_DESTINATION_DIR}/logo18.svg ${CMAKE_CURRENT_BINARY_DIR}/svg2img-logo.jpg --width 64 --quality 80)
 set_tests_properties(test-svg2img PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "svg2img-logo.jpg: 64x[0-9]+ jpg")
 add_test(NAME test-svg2img-mistakes COMMAND svg2img ${RESOURCE_DESTINATION_DIR}/logo18.svg ${CMAKE_CURRENT_BINARY_DIR}/out.png --type jpg)
 set_tests_properties(test-svg2img-mistakes PROPERTIES LABELS unit WILL_FAIL TRUE)
+
+# The image-quality tool on a photo: one line, its verdict first.
+add_test(NAME test-image-quality-tool COMMAND image-quality ${RESOURCE_DESTINATION_DIR}/image.jpg --html ${CMAKE_CURRENT_BINARY_DIR}/image-quality.html)
+set_tests_properties(test-image-quality-tool PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "^ok\t")

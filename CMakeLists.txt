@@ -42,6 +42,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif ()
 add_sc_object(opencv INCLUDE_DIRS ${SC_IMAGE_JPEG_INCLUDE} LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS}
         PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS})
+# Whether a camera's picture is fit to look at: covered, dark, blurred, one colour, broken.
+add_sc_object(image_quality LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
 # Video files read frame by frame (OpenCV's videoio), each frame an sc::image.
 add_sc_object(video LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
         PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
@@ -72,6 +74,8 @@ add_sc_example(sc-image-shapes LINK_LIBRARIES sc::sc-core-shared sc::sc-image-sh
 add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 # A tool, not a demo: SVG files to PNG, JPEG, WebP, BMP or TIFF.
 add_sc_example(svg2img LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+# A tool: camera pictures' quality, as lines of numbers and an HTML contact sheet, worst first.
+add_sc_example(image-quality LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 
 #############
 # Packaging #

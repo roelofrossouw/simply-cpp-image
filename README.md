@@ -1,8 +1,10 @@
 # simply-cpp-image
 
 C++20 wrapper around OpenCV for loading, saving, displaying, drawing on and pre-processing images,
-plus SVG rendering (`sc::svg2png`: SVG read by sc-graphics' `sc::drawing`, drawn with OpenCV) and
-`svg2img`, a tool that turns SVG files into PNG, JPEG, WebP, BMP or TIFF images.
+plus SVG rendering (`sc::svg2png`: SVG read by sc-graphics' `sc::drawing`, drawn with OpenCV),
+`svg2img`, a tool that turns SVG files into PNG, JPEG, WebP, BMP or TIFF images, and
+`sc::image_quality` with its tool `image-quality`: is a camera's picture fit to look at, or is the
+camera covered, blacked out, out of focus or sending broken files.
 
 **Documentation:** the [simply-cpp wiki](https://github.com/roelofrossouw/simply-cpp/wiki) has an [images guide](https://github.com/roelofrossouw/simply-cpp/wiki/Images) and the [sc-image reference](https://github.com/roelofrossouw/simply-cpp/wiki/Reference-sc-image), plus [getting started](https://github.com/roelofrossouw/simply-cpp/wiki/Getting-Started) for the whole suite.
 
@@ -158,6 +160,49 @@ while (const auto frame = clip.next(std::chrono::seconds(1))) // a frame a secon
 `next(every)` takes the frame nearest each time `every` apart (the first frame's, then every after
 it, within half a frame), so a frame rate that doesn't divide `every` doesn't make them drift; the
 frames between are skipped without being decoded. sc-ai's `sc-ai-demo --video` runs YOLO this way.
+
+### Camera pictures' quality
+
+`sc::image_quality` (`image_quality.h`) tells whether a camera's picture is fit to look at, from
+plain measurements (no model; a few milliseconds a picture after decoding). The picture is greyed
+and scaled to 640 wide first, so the numbers don't depend on its size, and cut into a 4 x 4 grid of
+cells measured each on its own:
+
+```cpp
+const auto quality = sc::image_quality::of(std::filesystem::path{"snapshot.jpg"}); // or of(image), of_bytes(bytes)
+to_string(quality.outcome);   // "ok", "corrupt", "uniform", "covered", "dark", "bright" or "blurred"
+quality.reason;               // why it's corrupt: "JPEG cut short (no end marker)", ...
+quality.sharpness;            // the cells' median variance of the Laplacian: under 35 is blurred
+quality.brightness;           // average grey, 0 to 255: under 30 dark, over 230 bright
+quality.contrast;             // the greys' standard deviation: under 4 is one colour (uniform)
+quality.empty_share;          // the share of lit cells with nothing in them: half or more is covered
+quality.colourfulness;        // Hasler and Süsstrunk's: under about 5 is grey (infrared at night)
+quality.fingerprint;          // 64 bits, for a camera sending the same picture again
+```
+
+The verdict is the first that holds, in that order: corrupt (not an image, or a JPEG without its end
+marker), uniform, dark, bright, covered, blurred, else ok. The limits are an
+`sc::image_quality::limits` (`of(picture, limits)`). The sharpness is the cells' median so that a
+camera's own date and time, sharp text on a blurred picture, doesn't make it look sharp.
+
+A frozen camera sends the same picture again: `sc::image_quality::differs(last, quality.fingerprint)`
+counts the bits that differ, under about 5 being the same picture. Keeping each camera's last
+fingerprint is the caller's part, and a parked vehicle's camera sees the same scene too.
+
+## image-quality
+
+`image-quality`, installed with the runtime package, measures pictures from the command line, to
+look through a camera's pictures or to try other limits:
+
+```bash
+image-quality snapshots/                      # a line per picture, the folder read through by name
+image-quality snapshots/ --html sheet.html    # and a contact sheet, worst first, filtered by verdict
+image-quality a.jpg b.jpg --blurred 40 --dark 20
+```
+
+Each line is tab separated: verdict, sharpness, brightness, contrast, colourfulness, empty cells %,
+fingerprint, the bits it differs by from the picture before it in its folder, size, file (and why
+it's corrupt). `--help` lists the options.
 
 ## svg2img
 

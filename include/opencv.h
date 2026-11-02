@@ -212,6 +212,7 @@ namespace sc {
 
     private:
         friend class video; // makes its frames
+        friend struct image_quality; // measures its pixels
 
         std::unique_ptr<impl::internals> impl;
         size_i size_;
