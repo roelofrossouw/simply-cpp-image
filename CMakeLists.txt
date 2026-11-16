@@ -72,10 +72,20 @@ endif ()
 add_sc_example(sc-image-demo LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 add_sc_example(sc-image-shapes LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
 add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
-# A tool, not a demo: SVG files to PNG, JPEG, WebP, BMP or TIFF.
-add_sc_example(svg2img LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
-# A tool: camera pictures' quality, as lines of numbers and an HTML contact sheet, worst first.
-add_sc_example(image-quality LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+
+############
+# Programs #
+############
+# Tools, not demos, so always built and installed with the runtime package, with a man page:
+# svg2img (SVG files to PNG, JPEG, WebP, BMP or TIFF) and image-quality (camera pictures' quality,
+# as lines of numbers and an HTML contact sheet, worst first).
+foreach (program svg2img image-quality)
+    add_executable(${program} apps/${program}.cpp)
+    target_link_libraries(${program} PRIVATE sc::sc-core-shared sc::sc-image-shared)
+    sc_program_info(${program})
+    install(TARGETS ${program} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
+    sc_man_page(${program} COMPONENT runtime)
+endforeach ()
 
 #############
 # Packaging #
