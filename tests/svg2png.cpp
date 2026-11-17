@@ -1,4 +1,5 @@
 #include <sc/image/image.h>
+#include <sc/core/core.h>
 
 #include <filesystem>
 #include <stdexcept>

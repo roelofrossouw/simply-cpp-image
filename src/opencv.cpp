@@ -1,5 +1,6 @@
 #include <sc/image/opencv.h>
 #include "internals.h"
+#include <sc/core/core.h>
 #include <algorithm>
 #include <filesystem>
 #include <cmath>
