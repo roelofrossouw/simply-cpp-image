@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <sc/core/sc.h>
 #include <sc/graphics/canvas.h>
 
 namespace sc {
