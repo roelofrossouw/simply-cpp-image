@@ -47,7 +47,7 @@ int main() {
         sc::console::step("const auto fitted = shapes.find_min_area_rects(100);");
         for (const auto &box: fitted) sc::console::note(sc::console::format(box));
 
-        sc::console::heading("Drawing on it: draw(shape, appearance), as on an sc::pdf");
+        sc::console::heading("Drawing on it: draw(shape, appearance), as on an sc::pdflite::writer");
         for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2}); // rotated rectangles, as outlines
         sc::console::step("for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2});");
         for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2}); // the outlines found

@@ -458,7 +458,7 @@ int main() {
             }
         }
 
-        sc::canvas &any = canvas; // the same calls as on an sc::pdf
+        sc::canvas &any = canvas; // the same calls as on an sc::pdflite::writer
         CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, {sc::stroke{sc::color::Red, 2}, sc::color::Blue}));
         CHECK_NOTHROW(any.draw(sc::polygon{{1.5, 1.5}, {10.5, 1.5}, {5, 9}}));
         CHECK_NOTHROW(any.draw(sc::rounded_rect{sc::rect{2, 2, 30, 20}, 5}));

@@ -58,7 +58,7 @@ resized.save("output.jpg");
 `resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
 An `sc::image` is an `sc::canvas` (sc-graphics), so shapes and text are drawn on it with the same
-calls as on an `sc::pdf`: `draw(shape, appearance)`, in pixels. An `sc::appearance` is a stroke (a
+calls as on an `sc::pdflite::writer`: `draw(shape, appearance)`, in pixels. An `sc::appearance` is a stroke (a
 colour and a width; black, 1 pixel by default) and a fill (a colour; none by default): a colour
 converts to an outline, `{stroke, fill}` gives both, `sc::appearance::filled(fill)` only the inside.
 Points are rounded to whole pixels, edges antialiased, and clip paths honoured. Colours are painted opaque: a partly

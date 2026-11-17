@@ -13,7 +13,7 @@ namespace sc {
     }
 
     /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
-    /// draw(shape, appearance), the same as on an sc::pdf, in pixels. Points are rounded to whole
+    /// draw(shape, appearance), the same as on an sc::pdflite::writer, in pixels. Points are rounded to whole
     /// pixels, lines antialiased, clip paths honoured. Colours are painted opaque (a partly transparent one as if
     /// solid; only the PDF engines honour alpha), as grey on a single-channel image. Text uses
     /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
