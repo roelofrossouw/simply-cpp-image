@@ -1,4 +1,4 @@
-#include "opencv.h"
+#include <sc/image/opencv.h>
 #include "internals.h"
 #include <algorithm>
 #include <filesystem>

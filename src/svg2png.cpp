@@ -1,10 +1,10 @@
-#include "svg2png.h"
+#include <sc/image/svg2png.h>
 
-#include "opencv.h"
+#include <sc/image/opencv.h>
 
-#include <core.h>
-#include <drawing.h>
-#include <utf8.h>
+#include <sc/core/core.h>
+#include <sc/graphics/drawing.h>
+#include <sc/core/utf8.h>
 
 #include <algorithm>
 #include <cmath>

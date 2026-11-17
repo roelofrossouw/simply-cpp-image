@@ -8,10 +8,10 @@
 #include <fstream>
 #include <filesystem>
 
-#include <sc.h>
+#include <sc/core/sc.h>
 
-#include <image.h>
-#include <svg2png.h>
+#include <sc/image/image.h>
+#include <sc/image/svg2png.h>
 
 int main() {
     try {

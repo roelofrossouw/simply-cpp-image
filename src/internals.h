@@ -1,7 +1,7 @@
 #ifndef SC_IMAGE_INTERNALS_H
 #define SC_IMAGE_INTERNALS_H
 
-#include <opencv.h>
+#include <sc/image/opencv.h>
 
 #include <opencv2/core.hpp>
 

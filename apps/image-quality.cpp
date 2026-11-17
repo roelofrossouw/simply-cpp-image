@@ -15,11 +15,11 @@
 #include <string>
 #include <vector>
 
-#include <base64.h>
-#include <params.h>
+#include <sc/core/base64.h>
+#include <sc/core/params.h>
 
-#include <image_quality.h>
-#include <opencv.h>
+#include <sc/image/image_quality.h>
+#include <sc/image/opencv.h>
 
 namespace {
     struct measured {

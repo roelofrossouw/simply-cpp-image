@@ -1,6 +1,6 @@
 #pragma once
 
-#include <opencv.h>
+#include <sc/image/opencv.h>
 
 #include <chrono>
 #include <cstddef>

@@ -11,11 +11,11 @@
 #include <stdexcept>
 #include <string>
 
-#include <core.h>
-#include <params.h>
+#include <sc/core/core.h>
+#include <sc/core/params.h>
 
-#include <opencv.h>
-#include <svg2png.h>
+#include <sc/image/opencv.h>
+#include <sc/image/svg2png.h>
 
 namespace {
     // An extension's image type: "jpeg" is jpg, "tif" tiff; empty when it isn't one.

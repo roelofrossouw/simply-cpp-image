@@ -1,4 +1,4 @@
-#include "video.h"
+#include <sc/image/video.h>
 #include "internals.h"
 
 #include <opencv2/videoio.hpp>

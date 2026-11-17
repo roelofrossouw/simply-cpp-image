@@ -1,11 +1,11 @@
 #pragma once
-#include <log_level.h>
+#include <sc/core/log_level.h>
 #include <array>
 #include <memory>
 #include <string>
 #include <vector>
-#include <sc.h>
-#include <canvas.h>
+#include <sc/core/sc.h>
+#include <sc/graphics/canvas.h>
 
 namespace sc {
     namespace impl {

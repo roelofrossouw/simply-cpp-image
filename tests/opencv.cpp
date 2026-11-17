@@ -1,6 +1,6 @@
-#include <image.h>
+#include <sc/image/image.h>
 
-#include <base64.h>
+#include <sc/core/base64.h>
 
 #include <array>
 #include <cstdio>

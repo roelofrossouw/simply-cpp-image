@@ -45,7 +45,7 @@ target_link_libraries(myapp PRIVATE sc::sc-image)
 ### Loading and editing images
 
 ```cpp
-#include <image.h>
+#include <sc/image/image.h>
 
 sc::image image{"input.jpg"}; // throws std::runtime_error if it can't be read
 

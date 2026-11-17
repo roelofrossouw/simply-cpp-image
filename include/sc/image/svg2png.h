@@ -1,8 +1,8 @@
 #ifndef SC_SVG2PNG_H
 #define SC_SVG2PNG_H
 
-#include <color.h>
-#include <size.h>
+#include <sc/core/color.h>
+#include <sc/core/size.h>
 
 #include <string>
 #include <string_view>

@@ -1,4 +1,4 @@
-#include <image.h>
+#include <sc/image/image.h>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>

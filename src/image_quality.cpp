@@ -1,4 +1,4 @@
-#include "image_quality.h"
+#include <sc/image/image_quality.h>
 #include "internals.h"
 
 #include <opencv2/core.hpp>
