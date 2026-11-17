@@ -83,8 +83,8 @@ foreach (program svg2img image-quality)
     add_executable(${program} apps/${program}.cpp)
     target_link_libraries(${program} PRIVATE sc::sc-core-shared sc::sc-image-shared)
     sc_program_info(${program})
-    install(TARGETS ${program} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime)
-    sc_man_page(${program} COMPONENT runtime)
+    install(TARGETS ${program} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT tools)
+    sc_man_page(${program} COMPONENT tools)
 endforeach ()
 
 #############
