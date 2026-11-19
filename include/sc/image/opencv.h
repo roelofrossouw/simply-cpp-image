@@ -13,11 +13,12 @@ namespace sc {
 
     /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
     /// draw(shape, appearance), the same as on an sc::pdflite::writer, in pixels. Points are rounded to whole
-    /// pixels, lines antialiased, clip paths honoured. Colours are painted opaque (a partly transparent one as if
-    /// solid; only the PDF engines honour alpha), as grey on a single-channel image. Text uses
-    /// OpenCV's Hershey fonts: sans-serif (the default) or serif, bold from weight 600, italic, with
-    /// font.size as the text's height in pixels; other families fall back to sans-serif. Text is
-    /// measured (canvas::text_width() and the rest) in the same font.
+    /// pixels, lines antialiased, clip paths honoured. Colours are blended by their alpha (a gradient's stops'
+    /// alphas aren't), as grey on a single-channel image. Text is drawn in the installed face font.face()
+    /// finds (fontconfig's substitute for a family that isn't installed), from its glyph outlines, with
+    /// font.size as the em in pixels, as on the other canvases, and measured (canvas::text_width() and
+    /// the rest) in the same face. Only when no outline font is installed do OpenCV's Hershey fonts
+    /// stand in: sans-serif or serif, bold from weight 600, italic, font.size as the text's height.
     class image : public canvas {
     public:
         /// What reading images writes to stderr. libjpeg's warnings about a damaged JPEG ("Corrupt
@@ -170,14 +171,15 @@ namespace sc {
         void mask(double threshold = 0.5);
 
     protected:
-        // An appearance's stroke and fill in their colour, alpha ignored; a stroke's width rounds to whole pixels, at
+        // An appearance's stroke and fill in their colour, blended by its alpha (a gradient's stops' alphas are
+        // ignored); text in its font's own glyph outlines (OpenCV's Hershey font only when no font is installed);
+        // a stroke's width rounds to whole pixels, at
         // least 1. Dashes and other stroke and fill styles aren't drawn: plain outlines and flat fills.
         //
         // A linear gradient fill is drawn too: each pixel the gradient's colour at its centre.
         //
         // TODO: radial gradients and gradient strokes, masks (by luminance; SVG masks are read as
-        // clips), opacity (alpha blending), and text in real fonts (FreeType outlines from
-        // sc-graphics' font_face) instead of Hershey.
+        // clips), and a gradient's stops' alphas.
         void paint_polygon(const polygon &shape, const sc::appearance &look) override;
 
         void paint_circle(const sc::circle &shape, const sc::appearance &look) override;
@@ -190,7 +192,7 @@ namespace sc {
         // Throws std::runtime_error when OpenCV can't decode it.
         void paint_bitmap(const bitmap &picture, const transform &placement) override;
 
-        // In pixels, for the Hershey font that draws it; they work on an empty image too.
+        // In pixels, in the face that draws it (Hershey without one); they work on an empty image too.
         double measure_width(const sc::text &sample) override;
 
         double measure_x_height(const font &font) override;

@@ -34,8 +34,7 @@ int main(int argc, char **argv) {
         {"name", "svg2img"},
         {"description", "Renders an SVG file as an image: PNG (the default), JPEG, WebP, BMP or TIFF. Leave out OUTPUT and "
                         "the image is written next to INPUT, with the type's extension. A few things aren't drawn yet: radial "
-                        "gradients, masks by luminance, transparency and text in real fonts (OpenCV's Hershey fonts stand "
-                        "in).\nMore on the wiki: https://github.com/roelofrossouw/simply-cpp/wiki/Images"},
+                        "gradients, masks by luminance and a transparent background (it comes out white).\nMore on the wiki: https://github.com/roelofrossouw/simply-cpp/wiki/Images"},
         {"options", {
             {"type", {{"short", "t"}, {"choices", {"png", "jpg", "webp", "bmp", "tiff"}},
                       {"help", "the image type (default: OUTPUT's extension, else png)"}}},

@@ -10,12 +10,13 @@
 namespace sc {
     /// SVG to PNG, as bytes: read by sc-graphics' sc::drawing and drawn on an sc::image (OpenCV),
     /// so it draws what both do: paths, the basic shapes, groups, transforms, flat colours and
-    /// strokes, and text in OpenCV's Hershey fonts. A UTF-8 BOM is allowed. All throw
+    /// strokes, opacity, and text in its font's own glyphs (as it's measured, so text-anchor
+    /// lines up). A UTF-8 BOM is allowed. All throw
     /// std::invalid_argument when the SVG can't be read.
     ///
     /// Clip paths are drawn, a white mask (read as a clip) and linear gradients; fill rules are
-    /// kept. TODO: radial gradients (drawn flat), masks by their luminance, opacity (transparent
-    /// parts come out opaque, a transparent background white) and text in real fonts.
+    /// kept. TODO: radial gradients (drawn flat), masks by their luminance and a gradient's
+    /// stop opacity; a transparent background comes out white.
     class svg2png {
     public:
         /// At the SVG's own size, on white.

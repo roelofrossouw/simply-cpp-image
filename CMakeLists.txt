@@ -15,7 +15,7 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 # The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
 find_or_install_package(sc-core simply-cpp-dev simply-cpp 3.0.0) # log_level.h
 # sc::canvas, which image implements, and sc::drawing, which svg2png reads SVG with.
-find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 7.0.0)
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 7.1.0)
 
 
 ## OpenCV ##
@@ -93,5 +93,5 @@ endforeach ()
 set(CPACK_COMPONENTS_ALL runtime development)
 # The library has sc-core built in; the tools and demos load libsc-core-shared (simply-cpp), and
 # the CMake config finds sc-core (simply-cpp-dev).
-package_sc_module(DEPENDS "simply-cpp (>= 3.0.0~)" "simply-cpp-graphics (>= 7.0.0~)"
-        DEV_DEPENDS "simply-cpp-dev (>= 3.0.0~)" "simply-cpp-graphics-dev (>= 7.0.0~)" libopencv-dev)
+package_sc_module(DEPENDS "simply-cpp (>= 3.0.0~)" "simply-cpp-graphics (>= 7.1.0~)"
+        DEV_DEPENDS "simply-cpp-dev (>= 3.0.0~)" "simply-cpp-graphics-dev (>= 7.1.0~)" libopencv-dev)

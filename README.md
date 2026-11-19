@@ -76,8 +76,10 @@ canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::stroke{sc::color::Red, 2});
 for (const auto &contour: canvas.find_contours()) canvas.draw(contour, sc::stroke{sc::color::Blue, 2});
 ```
 
-Text uses OpenCV's Hershey fonts: `sans-serif` (the default) or `serif`, bold from weight 600,
-italic, with `font.size` as the text's height in pixels.
+Text is drawn in the installed face `font.face()` finds (fontconfig's substitute when the family
+isn't installed), from its glyph outlines, with `font.size` as the em in pixels, and measured in
+the same face, so anchored and laid-out text lines up. Colours are blended by their alpha. Only
+without any outline font do OpenCV's Hershey fonts stand in.
 
 `find_contours()` gives the outline of each white (non-zero) area as an `sc::polygon_i`, drawn like
 any other polygon.
@@ -133,14 +135,15 @@ sc::image{big}.save("logo.jpg", 90);                                            
 
 A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size. It draws what
 sc-graphics reads and OpenCV draws: paths, the basic shapes, groups, transforms, flat colours and
-strokes, with text in OpenCV's Hershey fonts.
+strokes, opacity (fill-opacity, stroke-opacity, opacity, inherited from groups), and text in its
+font's own glyphs, measured in the same font, so `text-anchor` lines up.
 
 Clip paths are drawn, smooth-edged, and so is a white mask (read as a clip); paths fill by their
 fill rule (nonzero or even-odd), open outlines as if closed.
 
 Images (PNG or JPEG, an `sc::bitmap`, an SVG `<image>`'s data: URI) are decoded and resampled into
 place, their alpha honoured. Linear gradients are drawn too. TODO: radial gradients (drawn in their middle colour), masks by
-their luminance, opacity (a transparent background comes out white) and text in real fonts.
+their luminance, and a gradient's stop opacity; a transparent background comes out white.
 
 ### Video files
 

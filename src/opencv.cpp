@@ -1,6 +1,8 @@
 #include <sc/image/opencv.h>
 #include "internals.h"
 #include <sc/core/core.h>
+#include <sc/graphics/font_face.h>
+#include <optional>
 #include <algorithm>
 #include <filesystem>
 #include <cmath>
@@ -406,6 +408,14 @@ namespace sc {
 
         int thickness(const double width) { return std::max(1, static_cast<int>(std::lround(width))); }
 
+        // The installed face that draws font's text, as outlines: none when no outline font is
+        // installed (or only a colour one), and then OpenCV's Hershey font stands in.
+        std::optional<font_face> outline_face(const font &spec) {
+            auto face = spec.face();
+            if (face && !face->outline("H", 16).empty()) return face;
+            return std::nullopt;
+        }
+
         // The Hershey font that stands in for font: face, scale for font.size pixels high, and stroke.
         struct hershey {
             int face;
@@ -480,8 +490,8 @@ namespace sc {
             blended.convertTo(target(area), target.type());
         }
 
-        // The fill's colours over area: flat, or a gradient's at each pixel's centre (alpha ignored,
-        // as everywhere in sc-image).
+        // The fill's colours over area: flat, or a gradient's at each pixel's centre (alpha is applied by
+        // translucent(); a gradient's stops' alphas are still ignored).
         cv::Mat fill_colours(const sc::fill &fill, const cv::Rect &area, const int channels) {
             const int type = CV_MAKETYPE(CV_32F, channels);
             if (!fill.gradient()) return {area.size(), type, cvcolor(fill.colour(), channels)};
@@ -523,6 +533,48 @@ namespace sc {
             cv::Mat painted;
             copy(area).convertTo(painted, CV_32F);
             blend(in.image_mat, area, coverage_of(mask(area)), painted);
+        }
+
+        // Runs paint at opacity (a colour's alpha; OpenCV's drawing ignores it): as it is when opaque,
+        // else on a copy that's blended back by opacity.
+        template<typename Paint>
+        void translucent(impl::internals &in, const double opacity, Paint paint) {
+            if (opacity <= 0) return;
+            if (opacity >= 1) {
+                clipped(in, paint);
+                return;
+            }
+            clipped(in, [&](cv::Mat &target) {
+                cv::Mat copy = target.clone();
+                paint(copy);
+                cv::addWeighted(copy, opacity, target, 1 - opacity, 0, target);
+            });
+        }
+
+        // How opaque a fill is: its colour's alpha (a gradient's stops' alphas are still ignored).
+        double opacity_of(const sc::fill &fill) { return fill.gradient() ? 1 : fill.colour().alpha(); }
+
+        // Glyph outlines filled nonzero, as fonts are drawn, at a sixteenth of a pixel (small text
+        // keeps its shapes), blended in by coverage.
+        void fill_glyphs(cv::Mat &target, const path &glyphs, const sc::fill &fill) {
+            constexpr int shift = 4;
+            constexpr double scale = 1 << shift;
+            const rect box = glyphs.bounds();
+            const int left = static_cast<int>(std::floor(box.left())) - 1, top = static_cast<int>(std::floor(box.top())) - 1;
+            const cv::Rect area = cv::Rect{left, top, static_cast<int>(std::ceil(box.right())) - left + 2, static_cast<int>(std::ceil(box.bottom())) - top + 2} &
+                                  cv::Rect{0, 0, target.cols, target.rows};
+            if (area.empty()) return;
+            cv::Mat winding = cv::Mat::zeros(area.size(), CV_32F);
+            for (const auto &[points, closed]: glyphs.flattened()) {
+                if (points.size() < 3) continue;
+                std::vector<cv::Point> outline;
+                outline.reserve(points.size());
+                for (const auto &at: points) outline.emplace_back(cvRound((at.x() - area.x) * scale), cvRound((at.y() - area.y) * scale));
+                cv::Mat one = cv::Mat::zeros(area.size(), CV_8U);
+                cv::fillPoly(one, outlines{outline}, cv::Scalar{255}, cv::LINE_AA, shift);
+                winding += coverage_of(one) * (cv::contourArea(outline, true) >= 0 ? 1.0 : -1.0);
+            }
+            blend(target, area, cv::min(cv::abs(winding), 1.0), fill_colours(fill, area, target.channels()));
         }
     }
 
@@ -585,13 +637,15 @@ namespace sc {
         points.reserve(shape.size());
         for (const auto &point: shape) points.push_back(pixel(point));
         const std::vector<std::vector<cv::Point> > outline{points};
-        clipped(*impl, [&](cv::Mat &target) {
-            if (fill.visible()) {
+        if (fill.visible())
+            translucent(*impl, opacity_of(fill), [&](cv::Mat &target) {
                 if (fill.gradient()) fill_outlines(target, outline, fill);
                 else cv::fillPoly(target, outline, cvcolor(fill.colour(), channels()), cv::LINE_AA);
-            }
-            if (stroke.visible()) cv::polylines(target, outline, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
-        });
+            });
+        if (stroke.visible())
+            translucent(*impl, stroke.colour().alpha(), [&](cv::Mat &target) {
+                cv::polylines(target, outline, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+            });
     }
 
     void image::paint_circle(const sc::circle &shape, const sc::appearance &look) {
@@ -600,8 +654,8 @@ namespace sc {
         const auto &fill = look.fill();
         const auto centre = pixel(shape.center());
         const int radius = detail::polygon_coordinate(shape.radius());
-        clipped(*impl, [&](cv::Mat &target) {
-            if (fill.visible() && fill.gradient()) {
+        if (fill.visible()) translucent(*impl, opacity_of(fill), [&](cv::Mat &target) {
+            if (fill.gradient()) {
                 const cv::Rect area = cv::Rect{centre.x - radius - 1, centre.y - radius - 1, 2 * radius + 3, 2 * radius + 3} &
                                       cv::Rect{0, 0, target.cols, target.rows};
                 if (!area.empty()) {
@@ -609,24 +663,34 @@ namespace sc {
                     cv::circle(mask, centre - area.tl(), radius, cv::Scalar{255}, cv::FILLED, cv::LINE_AA);
                     blend(target, area, coverage_of(mask), fill_colours(fill, area, target.channels()));
                 }
-            } else if (fill.visible()) {
+            } else {
                 cv::circle(target, centre, radius, cvcolor(fill.colour(), channels()), cv::FILLED, cv::LINE_AA);
             }
-            if (stroke.visible()) cv::circle(target, centre, radius, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
         });
+        if (stroke.visible())
+            translucent(*impl, stroke.colour().alpha(), [&](cv::Mat &target) {
+                cv::circle(target, centre, radius, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
+            });
     }
 
     void image::paint_line(const sc::line &shape, const sc::stroke &stroke) {
         if (empty()) return;
-        clipped(*impl, [&](cv::Mat &target) {
+        translucent(*impl, stroke.colour().alpha(), [&](cv::Mat &target) {
             cv::line(target, pixel(shape.from()), pixel(shape.to()), cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
         });
     }
 
     void image::paint_text(const sc::text &sample, const sc::fill &fill) {
-        if (empty()) return;
+        if (empty() || sample.content.empty()) return;
+        // The font's own glyphs, as they're measured (text-anchor, layout).
+        if (const auto face = outline_face(sample.font)) {
+            const path glyphs = face->outline(sample.content, sample.font.size, sample.position);
+            if (!glyphs.empty()) translucent(*impl, opacity_of(fill), [&](cv::Mat &target) { fill_glyphs(target, glyphs, fill); });
+            return;
+        }
+        // No outline font installed: OpenCV's Hershey stroke font.
         const hershey font{sample.font};
-        clipped(*impl, [&](cv::Mat &target) {
+        translucent(*impl, opacity_of(fill), [&](cv::Mat &target) {
             cv::putText(target, sample.content, pixel(sample.position), font.face, font.scale, cvcolor(fill.colour(), channels()), font.thickness,
                         cv::LINE_AA);
         });
@@ -642,19 +706,19 @@ namespace sc {
             outline.reserve(points.size());
             for (const auto &point: points) outline.push_back(pixel(point));
         }
-        clipped(*impl, [&](cv::Mat &target) {
-            if (fill.visible()) {
+        if (fill.visible())
+            translucent(*impl, opacity_of(fill), [&](cv::Mat &target) {
                 // Open outlines are filled as if closed, as SVG and PDF fill them.
                 auto filled = closed;
                 for (const auto &outline: open)
                     if (outline.size() > 2) filled.push_back(outline);
                 if (!filled.empty()) fill_outlines(target, filled, fill);
-            }
-            if (stroke.visible()) {
+            });
+        if (stroke.visible())
+            translucent(*impl, stroke.colour().alpha(), [&](cv::Mat &target) {
                 cv::polylines(target, closed, true, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
                 cv::polylines(target, open, false, cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
-            }
-        });
+            });
     }
 
     void image::push_clip(const path &shape) {
@@ -681,16 +745,19 @@ namespace sc {
     }
 
     double image::measure_width(const sc::text &sample) {
+        if (const auto face = outline_face(sample.font)) return face->width(sample.content, sample.font.size);
         return hershey{sample.font}.size(sample.content).width;
     }
 
     double image::measure_x_height(const font &font) {
+        if (const auto face = outline_face(font)) return face->x_height(font.size);
         // getTextSize() gives every text the font's full height, so it can't measure an x; Hershey
         // lowercase is two thirds of the capitals (14 of 21 font units).
         return measure_cap_height(font) * 2 / 3;
     }
 
     double image::measure_cap_height(const font &font) {
+        if (const auto face = outline_face(font)) return face->cap_height(font.size);
         return hershey{font}.size("H").height;
     }
 
