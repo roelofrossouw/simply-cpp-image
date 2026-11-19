@@ -554,27 +554,34 @@ namespace sc {
         // How opaque a fill is: its colour's alpha (a gradient's stops' alphas are still ignored).
         double opacity_of(const sc::fill &fill) { return fill.gradient() ? 1 : fill.colour().alpha(); }
 
-        // Glyph outlines filled nonzero, as fonts are drawn, at a sixteenth of a pixel (small text
-        // keeps its shapes), blended in by coverage.
+        // Glyph outlines filled nonzero, as fonts are drawn: at four times the resolution without
+        // antialiasing (exact winding), then scaled down by area, so each pixel's coverage is how much
+        // of it the glyphs take. (fillPoly's own antialiasing spreads edges outward by about half a
+        // pixel, which makes straight stems heavier than curves at text sizes.)
         void fill_glyphs(cv::Mat &target, const path &glyphs, const sc::fill &fill) {
-            constexpr int shift = 4;
-            constexpr double scale = 1 << shift;
+            constexpr int samples = 4, shift = 4;
+            constexpr double scale = samples * (1 << shift);
             const rect box = glyphs.bounds();
             const int left = static_cast<int>(std::floor(box.left())) - 1, top = static_cast<int>(std::floor(box.top())) - 1;
             const cv::Rect area = cv::Rect{left, top, static_cast<int>(std::ceil(box.right())) - left + 2, static_cast<int>(std::ceil(box.bottom())) - top + 2} &
                                   cv::Rect{0, 0, target.cols, target.rows};
             if (area.empty()) return;
-            cv::Mat winding = cv::Mat::zeros(area.size(), CV_32F);
+            const cv::Size fine{area.width * samples, area.height * samples};
+            cv::Mat winding = cv::Mat::zeros(fine, CV_16S);
             for (const auto &[points, closed]: glyphs.flattened()) {
                 if (points.size() < 3) continue;
                 std::vector<cv::Point> outline;
                 outline.reserve(points.size());
                 for (const auto &at: points) outline.emplace_back(cvRound((at.x() - area.x) * scale), cvRound((at.y() - area.y) * scale));
-                cv::Mat one = cv::Mat::zeros(area.size(), CV_8U);
-                cv::fillPoly(one, outlines{outline}, cv::Scalar{255}, cv::LINE_AA, shift);
-                winding += coverage_of(one) * (cv::contourArea(outline, true) >= 0 ? 1.0 : -1.0);
+                cv::Mat one = cv::Mat::zeros(fine, CV_8U);
+                cv::fillPoly(one, outlines{outline}, cv::Scalar{1}, cv::LINE_8, shift);
+                cv::Mat signed_one;
+                one.convertTo(signed_one, CV_16S, cv::contourArea(outline, true) >= 0 ? 1 : -1);
+                winding += signed_one;
             }
-            blend(target, area, cv::min(cv::abs(winding), 1.0), fill_colours(fill, area, target.channels()));
+            cv::Mat inside = (winding != 0), coverage; // 255 where any outline winds
+            cv::resize(inside, coverage, area.size(), 0, 0, cv::INTER_AREA);
+            blend(target, area, coverage_of(coverage), fill_colours(fill, area, target.channels()));
         }
     }
 
