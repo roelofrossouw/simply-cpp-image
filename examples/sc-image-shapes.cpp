@@ -22,14 +22,14 @@ int main() {
 
         sc::console::heading("A test image");
         sc::console::note("A tilted rectangle, a circle and a triangle, rendered from SVG.");
-        std::ofstream{source, std::ios::binary} << sc::svg2png::FromString(
+        std::ofstream{source, std::ios::binary} << sc::image::svg2png::from_string(
             R"(<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240">)"
             R"(<rect width="400" height="240" fill="black"/>)"
             R"svg(<rect x="50" y="60" width="110" height="50" fill="white" transform="rotate(20 105 85)"/>)svg"
             R"(<circle cx="290" cy="80" r="45" fill="white"/>)"
             R"(<polygon points="150,215 210,150 260,210" fill="white"/></svg>)");
-        sc::image shapes{source};
-        sc::console::step("sc::image shapes{source};   // " + source);
+        sc::image::picture shapes{source};
+        sc::console::step("sc::image::picture shapes{source};   // " + source);
         SC_SHOW(shapes.size());
 
         sc::console::heading("Outlines: find_contours()");
@@ -48,13 +48,13 @@ int main() {
         for (const auto &box: fitted) sc::console::note(sc::console::format(box));
 
         sc::console::heading("Drawing on it: draw(shape, appearance), as on an sc::pdflite::writer");
-        for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2}); // rotated rectangles, as outlines
-        sc::console::step("for (const auto &box: fitted) shapes.draw(box, sc::stroke{sc::color::Red, 2});");
-        for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2}); // the outlines found
-        sc::console::step("for (const auto &contour: contours) shapes.draw(contour, sc::stroke{sc::color::Blue, 2});");
-        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, {sc::stroke{sc::color{"orange"}, 3}, sc::color{0.3, 0.3, 0.8}}));
-        SC_STEP(shapes.draw(sc::rounded_rect{sc::rect{10, 10, 380, 220}, 12}, sc::stroke{sc::color::Green, 2}));
-        SC_STEP(shapes.draw(sc::text{"3 shapes", {300, 225}, {"sans-serif", 18}}, sc::color::White));
+        for (const auto &box: fitted) shapes.draw(box, sc::graphics::stroke{sc::color::Red, 2}); // rotated rectangles, as outlines
+        sc::console::step("for (const auto &box: fitted) shapes.draw(box, sc::graphics::stroke{sc::color::Red, 2});");
+        for (const auto &contour: contours) shapes.draw(contour, sc::graphics::stroke{sc::color::Blue, 2}); // the outlines found
+        sc::console::step("for (const auto &contour: contours) shapes.draw(contour, sc::graphics::stroke{sc::color::Blue, 2});");
+        SC_STEP(shapes.draw(sc::circle{{290, 80}, 55}, {sc::graphics::stroke{sc::color{"orange"}, 3}, sc::color{0.3, 0.3, 0.8}}));
+        SC_STEP(shapes.draw(sc::rounded_rect{sc::rect{10, 10, 380, 220}, 12}, sc::graphics::stroke{sc::color::Green, 2}));
+        SC_STEP(shapes.draw(sc::graphics::text{"3 shapes", {300, 225}, {"sans-serif", 18}}, sc::color::White));
         SC_SHOW(shapes.save(output));
 
         sc::console::output() << "\nThe result is " << output << '\n';

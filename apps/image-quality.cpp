@@ -1,4 +1,4 @@
-// image-quality: whether camera pictures are fit to look at (sc::image_quality): a line of numbers
+// image-quality: whether camera pictures are fit to look at (sc::image::quality): a line of numbers
 // for each, and with --html a contact sheet, worst first, to set the limits by eye. --help lists
 // the options.
 
@@ -24,7 +24,7 @@
 namespace {
     struct measured {
         std::filesystem::path file;
-        sc::image_quality quality;
+        sc::image::quality quality;
         int previous_differs = -1; // from the picture before it in its folder; -1 for the first
         std::string thumbnail;     // a JPEG, base64
     };
@@ -37,8 +37,8 @@ namespace {
     }
 
     // The worst kinds first on the sheet.
-    int rank(const sc::image_quality::verdict verdict) {
-        using enum sc::image_quality::verdict;
+    int rank(const sc::image::quality::verdict verdict) {
+        using enum sc::image::quality::verdict;
         switch (verdict) {
             case corrupt: return 0;
             case uniform: return 1;
@@ -133,7 +133,7 @@ document.querySelectorAll('.card').forEach(c=>c.style.display=!b.dataset.v||c.da
 }
 
 int main(int argc, char **argv) {
-    const sc::image_quality::limits defaults;
+    const sc::image::quality::limits defaults;
     const sc::params args{argc, argv, {
         {"name", "image-quality"},
         {"description", "Measures whether camera pictures are fit to look at: corrupt, uniform (one colour), covered, dark, "
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
         {"extra", {{"files", {{"required", true}, {"help", "pictures, or folders of them"}}}}}}};
 
     try {
-        sc::image_quality::limits limits;
+        sc::image::quality::limits limits;
         limits.dark_brightness = args.as<double>("dark");
         limits.bright_brightness = args.as<double>("bright");
         limits.uniform_contrast = args.as<double>("uniform");
@@ -183,15 +183,15 @@ int main(int argc, char **argv) {
         std::vector<measured> pictures;
         std::map<std::filesystem::path, std::uint64_t> last_in_folder;
         for (const auto &file: files) {
-            measured picture{file, sc::image_quality::of(file, limits)};
+            measured picture{file, sc::image::quality::of(file, limits)};
             if (picture.quality.size.width() > 0) {
                 const auto folder = file.parent_path();
                 if (const auto last = last_in_folder.find(folder); last != last_in_folder.end())
-                    picture.previous_differs = sc::image_quality::differs(last->second, picture.quality.fingerprint);
+                    picture.previous_differs = sc::image::quality::differs(last->second, picture.quality.fingerprint);
                 last_in_folder[folder] = picture.quality.fingerprint;
                 if (!sheet.empty()) {
                     try {
-                        sc::image small{file.string()};
+                        sc::image::picture small{file.string()};
                         if (small.size().width() > thumbnail) small.resize_to({thumbnail, 0});
                         picture.thumbnail = sc::base64::encode(small.encoded("jpg", 70));
                     } catch (const std::exception &) {

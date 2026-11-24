@@ -32,58 +32,58 @@ int main() {
 
     SECTION("Rendering a file");
     {
-        const auto png = sc::svg2png::FromFile("resource/logo18.svg");
+        const auto png = sc::image::svg2png::from_file("resource/logo18.svg");
         check_is_png(png, "logo18.svg");
     }
 
     SECTION("Rendering a string");
     {
-        const auto png = sc::svg2png::FromString(
+        const auto png = sc::image::svg2png::from_string(
             R"(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>)");
         check_is_png(png, "inline svg");
 
         // The rendered png is a real image of the size the svg asked for.
         const auto path = (scratch / "inline.png").string();
         sc::file_put_contents(path, png);
-        const sc::image rendered{path};
+        const sc::image::picture rendered{path};
         CHECK(!rendered.empty());
         CHECK_EQ(rendered.size(), sc::size_i(40, 20));
     }
 
     SECTION("The svg dimensions carry through to the png");
     {
-        const auto png = sc::svg2png::FromString(
+        const auto png = sc::image::svg2png::from_string(
             R"(<svg xmlns="http://www.w3.org/2000/svg" width="17" height="33"><circle cx="8" cy="16" r="8"/></svg>)");
         const auto path = (scratch / "odd.png").string();
         sc::file_put_contents(path, png);
-        const sc::image rendered{path};
+        const sc::image::picture rendered{path};
         CHECK_EQ(rendered.size(), sc::size_i(17, 33));
     }
 
     SECTION("A size of its own, the aspect ratio kept, a background");
     {
         const string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><circle cx="10" cy="10" r="5"/></svg>)";
-        CHECK(sc::svg2png::Size(svg) == (sc::size{40, 20}));
+        CHECK(sc::image::svg2png::size(svg) == (sc::size{40, 20}));
         const auto read = [&](const string &png, const string &name) {
             const auto path = (scratch / name).string();
             sc::file_put_contents(path, png);
-            return sc::image{path};
+            return sc::image::picture{path};
         };
-        CHECK_EQ(read(sc::svg2png::FromString(svg, 100, 30, sc::color::Transparent), "both.png").size(), sc::size_i(100, 30));
-        CHECK_EQ(read(sc::svg2png::FromString(svg, 80, 0, sc::color::Transparent), "wide.png").size(), sc::size_i(80, 40)); // aspect kept
-        CHECK_EQ(read(sc::svg2png::FromString(svg, 0, 10, sc::color::White), "low.png").size(), sc::size_i(20, 10));
+        CHECK_EQ(read(sc::image::svg2png::from_string(svg, 100, 30, sc::color::Transparent), "both.png").size(), sc::size_i(100, 30));
+        CHECK_EQ(read(sc::image::svg2png::from_string(svg, 80, 0, sc::color::Transparent), "wide.png").size(), sc::size_i(80, 40)); // aspect kept
+        CHECK_EQ(read(sc::image::svg2png::from_string(svg, 0, 10, sc::color::White), "low.png").size(), sc::size_i(20, 10));
 
         // A white background, saved as JPEG at a quality.
         const auto jpeg = (scratch / "white.jpg").string();
-        CHECK(read(sc::svg2png::FromString(svg, 0, 0, sc::color::White), "white.png").save(jpeg, 80));
-        CHECK_EQ(sc::image{jpeg}.size(), sc::size_i(40, 20));
+        CHECK(read(sc::image::svg2png::from_string(svg, 0, 0, sc::color::White), "white.png").save(jpeg, 80));
+        CHECK_EQ(sc::image::picture{jpeg}.size(), sc::size_i(40, 20));
     }
 
     SECTION("Text is drawn in the font it's measured with, so text-anchor lines up");
     {
         // The repro from sc-webframe's chart labels: end, start and middle anchored at x = 100 (200 px).
         const string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60" font-family="Arial, Helvetica, sans-serif" font-size="11"><text x="100" y="15" text-anchor="end">R200m end</text><text x="100" y="35">R200m start</text><text x="100" y="55" text-anchor="middle">mid</text></svg>)";
-        const auto png = sc::svg2png::FromString(svg, 400, 0, sc::color::White);
+        const auto png = sc::image::svg2png::from_string(svg, 400, 0, sc::color::White);
         const cv::Mat grey = cv::imdecode(vector<uchar>(png.begin(), png.end()), cv::IMREAD_GRAYSCALE);
         CHECK_EQ(grey.cols, 400);
         // The ink's leftmost and rightmost columns in a band of rows (svg y from..to).
@@ -109,7 +109,7 @@ int main() {
     SECTION("Stroke and fill opacity, also inherited from a group");
     {
         const string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><g stroke="#888" stroke-opacity="0.2" stroke-width="4"><line x1="0" y1="5" x2="40" y2="5"/></g><g fill="#000" fill-opacity="0.5"><rect x="0" y="10" width="40" height="10"/></g></svg>)";
-        const auto png = sc::svg2png::FromString(svg, 0, 0, sc::color::White);
+        const auto png = sc::image::svg2png::from_string(svg, 0, 0, sc::color::White);
         const cv::Mat grey = cv::imdecode(vector<uchar>(png.begin(), png.end()), cv::IMREAD_GRAYSCALE);
         const int line = grey.at<uchar>(5, 20), rect = grey.at<uchar>(15, 20);
         // White under 20% of #888 (136) is about 231; under 50% black about 128.
@@ -120,12 +120,12 @@ int main() {
     SECTION("Unusable input is rejected");
     {
         // A file that is not there reaches the renderer as no data at all.
-        CHECK_THROWS_AS(sc::svg2png::FromFile("resource/no-such-file.svg"), invalid_argument);
-        CHECK_THROWS_AS(sc::svg2png::FromString(""), invalid_argument);
-        CHECK_THROWS_AS(sc::svg2png::FromString("this is not svg"), invalid_argument);
-        CHECK_THROWS_AS(sc::svg2png::Size("this is not svg"), invalid_argument);
+        CHECK_THROWS_AS(sc::image::svg2png::from_file("resource/no-such-file.svg"), invalid_argument);
+        CHECK_THROWS_AS(sc::image::svg2png::from_string(""), invalid_argument);
+        CHECK_THROWS_AS(sc::image::svg2png::from_string("this is not svg"), invalid_argument);
+        CHECK_THROWS_AS(sc::image::svg2png::size("this is not svg"), invalid_argument);
         // Valid input must not throw.
-        CHECK_NOTHROW(sc::svg2png::FromFile("resource/logo18.svg"));
+        CHECK_NOTHROW(sc::image::svg2png::from_file("resource/logo18.svg"));
     }
 
     error_code ignored;

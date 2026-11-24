@@ -13,9 +13,10 @@ message(STATUS "SimplyCPP ${SC_MODULE} Version: ${SC_VERSION}")
 ################
 
 # The demos use sc::console subheadings and SC_SHOW with commas (1.5.15).
-find_or_install_package(sc-core simply-cpp-dev simply-cpp 3.0.0) # log_level.h
+find_or_install_package(sc-core simply-cpp-dev simply-cpp 4.0.0) # log_level.h
+find_or_install_package(sc-geometry simply-cpp-geometry-dev simply-cpp-geometry 1.0.0)
 # sc::canvas, which image implements, and sc::drawing, which svg2png reads SVG with.
-find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 7.1.0)
+find_or_install_package(sc-graphics simply-cpp-graphics-dev simply-cpp-graphics 8.0.0)
 
 
 ## OpenCV ##
@@ -32,7 +33,7 @@ set(SOURCE_OBJECTS include/sc/image/image.h)
 set(SOURCE_LIBRARIES)
 set(SOURCE_LINK_LIBRARIES)
 # SVG to PNG: sc-graphics' drawing, drawn by the opencv object.
-add_sc_object(svg2png LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
+add_sc_object(svg2png LINK_LIBRARIES sc::sc-core sc::sc-geometry sc::sc-graphics ${OpenCV_LIBS})
 # On Linux it also quiets libjpeg's warnings below image's log level, needing libjpeg's header
 # (the library itself comes with OpenCV).
 set(SC_IMAGE_JPEG_INCLUDE)
@@ -40,13 +41,13 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_or_install_package(JPEG libjpeg-dev jpeg)
     set(SC_IMAGE_JPEG_INCLUDE ${JPEG_INCLUDE_DIRS})
 endif ()
-add_sc_object(opencv INCLUDE_DIRS ${SC_IMAGE_JPEG_INCLUDE} LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS}
-        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS})
+add_sc_object(opencv INCLUDE_DIRS ${SC_IMAGE_JPEG_INCLUDE} LINK_LIBRARIES sc::sc-core sc::sc-geometry sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS}
+        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-geometry sc::sc-graphics ${OpenCV_LIBS} ${CMAKE_DL_LIBS})
 # Whether a camera's picture is fit to look at: covered, dark, blurred, one colour, broken.
-add_sc_object(image_quality LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
+add_sc_object(image_quality LINK_LIBRARIES sc::sc-core sc::sc-geometry sc::sc-graphics ${OpenCV_LIBS})
 # Video files read frame by frame (OpenCV's videoio), each frame an sc::image.
-add_sc_object(video LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS}
-        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-graphics ${OpenCV_LIBS})
+add_sc_object(video LINK_LIBRARIES sc::sc-core sc::sc-geometry sc::sc-graphics ${OpenCV_LIBS}
+        PUBLIC_LINK_LIBRARIES sc::sc-core sc::sc-geometry sc::sc-graphics ${OpenCV_LIBS})
 
 ######################
 # Exported Libraries #
@@ -69,9 +70,9 @@ endif ()
 ############
 # Examples #
 ############
-add_sc_example(sc-image-demo LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
-add_sc_example(sc-image-shapes LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
-add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image-shared)
+add_sc_example(sc-image-demo LINK_LIBRARIES sc::sc-core-shared sc::sc-geometry-shared sc::sc-image-shared)
+add_sc_example(sc-image-shapes LINK_LIBRARIES sc::sc-core-shared sc::sc-geometry-shared sc::sc-image-shared)
+add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-geometry-shared sc::sc-image-shared)
 
 ############
 # Programs #
@@ -81,7 +82,7 @@ add_sc_example(sc-image-transform LINK_LIBRARIES sc::sc-core-shared sc::sc-image
 # as lines of numbers and an HTML contact sheet, worst first).
 foreach (program svg2img image-quality)
     add_executable(${program} apps/${program}.cpp)
-    target_link_libraries(${program} PRIVATE sc::sc-core-shared sc::sc-image-shared)
+    target_link_libraries(${program} PRIVATE sc::sc-core-shared sc::sc-geometry-shared sc::sc-image-shared)
     sc_program_info(${program})
     install(TARGETS ${program} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT tools)
     sc_man_page(${program} COMPONENT tools)
@@ -93,5 +94,5 @@ endforeach ()
 set(CPACK_COMPONENTS_ALL runtime development)
 # The library has sc-core built in; the tools and demos load libsc-core-shared (simply-cpp), and
 # the CMake config finds sc-core (simply-cpp-dev).
-package_sc_module(DEPENDS "simply-cpp (>= 3.0.0~)" "simply-cpp-graphics (>= 7.1.0~)"
-        DEV_DEPENDS "simply-cpp-dev (>= 3.0.0~)" "simply-cpp-graphics-dev (>= 7.1.0~)" libopencv-dev)
+package_sc_module(DEPENDS "simply-cpp (>= 4.0.0~)" "simply-cpp-graphics (>= 8.0.0~)"
+        DEV_DEPENDS "simply-cpp-dev (>= 4.0.0~)" "simply-cpp-geometry-dev (>= 1.0.0~)" "simply-cpp-graphics-dev (>= 8.0.0~)" libopencv-dev)

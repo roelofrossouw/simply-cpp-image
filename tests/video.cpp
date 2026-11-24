@@ -21,7 +21,7 @@ namespace {
     int grey_of(const int n) { return n * 8; }
 
     // How bright a frame is, 0 to 255, from its centre pixel.
-    double brightness(const sc::image &picture) {
+    double brightness(const sc::image::picture &picture) {
         auto pixel = picture.cropped(sc::rect_i{picture.size().width() / 2, picture.size().height() / 2, 1, 1});
         pixel.generate_blob(1.0, 0, true);
         return pixel.blob()[0];
@@ -41,7 +41,7 @@ int main() {
 
     SECTION("What the file declares");
     {
-        const sc::video clip{clip_file};
+        const sc::image::video clip{clip_file};
         CHECK_EQ(clip.size(), sc::size_i(64, 48));
         CHECK_EQ(clip.fps(), rate);
         CHECK_EQ(clip.frame_count(), std::size_t{frames});
@@ -50,7 +50,7 @@ int main() {
 
     SECTION("Every frame, in order, as images");
     {
-        sc::video clip{clip_file};
+        sc::image::video clip{clip_file};
         int count = 0;
         while (const auto frame = clip.next()) {
             CHECK_EQ(frame->number, std::size_t(count));
@@ -66,7 +66,7 @@ int main() {
 
     SECTION("A frame a second: the rest skipped");
     {
-        sc::video clip{clip_file};
+        sc::image::video clip{clip_file};
         std::vector<std::size_t> numbers;
         std::vector<long long> times;
         while (const auto frame = clip.next(1s)) {
@@ -79,18 +79,18 @@ int main() {
 
     SECTION("Moving a video");
     {
-        sc::video first{clip_file};
-        sc::video second{std::move(first)};
+        sc::image::video first{clip_file};
+        sc::image::video second{std::move(first)};
         const auto frame = second.next();
         CHECK(frame.has_value());
     }
 
     SECTION("Mistakes");
     {
-        CHECK_THROWS_AS(sc::video{scratch / "no-such.mp4"}, std::runtime_error);
+        CHECK_THROWS_AS(sc::image::video{scratch / "no-such.mp4"}, std::runtime_error);
         const auto not_a_video = scratch / "text.mp4";
         std::ofstream{not_a_video} << "not a video";
-        CHECK_THROWS_AS(sc::video{not_a_video}, std::runtime_error);
+        CHECK_THROWS_AS(sc::image::video{not_a_video}, std::runtime_error);
     }
 
     std::filesystem::remove_all(scratch);

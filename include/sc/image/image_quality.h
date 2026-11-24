@@ -7,9 +7,9 @@
 #include <string>
 #include <string_view>
 
-namespace sc {
-    /// Where each of sc::image_quality's verdicts starts. Measured on the greyed, scaled picture, 0 to 255.
-    struct image_quality_limits {
+namespace sc::image {
+    /// Where each of sc::image::quality's verdicts starts. Measured on the greyed, scaled picture, 0 to 255.
+    struct quality_limits {
         int analysis_width = 640;        // pixels; narrower images aren't enlarged
         int grid_columns = 4;
         int grid_rows = 4;
@@ -25,8 +25,8 @@ namespace sc {
     /// or a broken file. Plain measurements (OpenCV, no model), a few milliseconds an image: the
     /// image is greyed and scaled to analysis_width first, so the numbers don't depend on its size.
     ///
-    ///     const auto quality = sc::image_quality::of("snapshot.jpg");
-    ///     if (quality.outcome != sc::image_quality::verdict::ok) std::cout << to_string(quality.outcome);
+    ///     const auto quality = sc::image::quality::of("snapshot.jpg");
+    ///     if (quality.outcome != sc::image::quality::verdict::ok) std::cout << to_string(quality.outcome);
     ///
     /// The picture is cut into a grid of cells (4 x 4 by default), measured each on its own: a
     /// covered part of the lens shows as cells with nothing in them, and the camera's own date and
@@ -35,7 +35,7 @@ namespace sc {
     ///
     /// A camera that sends the same picture again (frozen) shows in fingerprint: compare it with
     /// the camera's last one with differs(). Keeping that last one is the caller's part.
-    struct image_quality {
+    struct quality {
         enum class verdict {
             ok,
             corrupt,  // not an image, or a JPEG cut short
@@ -46,7 +46,7 @@ namespace sc {
             blurred,  // nothing sharp anywhere: out of focus, fogged, a dirty lens
         };
 
-        using limits = image_quality_limits;
+        using limits = quality_limits;
 
         verdict outcome = verdict::corrupt;
         std::string reason;          // why it's corrupt; empty otherwise
@@ -59,15 +59,15 @@ namespace sc {
         std::uint64_t fingerprint{}; // a difference hash of the picture: 64 bits, 8 x 8
 
         /// Measures a picture.
-        [[nodiscard]] static image_quality of(const image &picture, const limits &given = {});
+        [[nodiscard]] static quality of(const picture &picture, const limits &given = {});
 
         /// Reads and measures a file; one that can't be read, or a JPEG without its end marker
         /// in its last 4 KB (cut short in transfer; padding after it is fine), is corrupt (with a reason), never an exception. A JPEG cut
         /// short is still measured as far as it decodes, where OpenCV's libjpeg decodes it at all.
-        [[nodiscard]] static image_quality of(const std::filesystem::path &file, const limits &given = {});
+        [[nodiscard]] static quality of(const std::filesystem::path &file, const limits &given = {});
 
         /// Measures an image file's bytes, as of(file) does.
-        [[nodiscard]] static image_quality of_bytes(std::string_view bytes, const limits &given = {});
+        [[nodiscard]] static quality of_bytes(std::string_view bytes, const limits &given = {});
 
         /// How many of the fingerprints' 64 bits differ: 0 is the same picture, under about 5 a
         /// picture the eye can't tell apart (JPEG noise), over 10 another one. A parked vehicle's
@@ -76,5 +76,5 @@ namespace sc {
         [[nodiscard]] static int differs(std::uint64_t one, std::uint64_t other);
     };
 
-    [[nodiscard]] std::string to_string(image_quality::verdict verdict);
+    [[nodiscard]] std::string to_string(quality::verdict verdict);
 }

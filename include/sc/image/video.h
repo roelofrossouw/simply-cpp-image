@@ -8,7 +8,7 @@
 #include <memory>
 #include <optional>
 
-namespace sc {
+namespace sc::image {
     namespace impl {
         struct video_internals;
     }
@@ -18,14 +18,14 @@ namespace sc {
     /// sc::image, three-channel BGR like a loaded photo, so it can be drawn on, saved or given to
     /// sc-ai's models.
     ///
-    ///     sc::video clip{"phone.mp4"};
+    ///     sc::image::video clip{"phone.mp4"};
     ///     while (const auto frame = clip.next(std::chrono::seconds(1))) // a frame a second
     ///         frame->picture.save("frame-" + std::to_string(frame->number) + ".jpg");
     class video {
     public:
         /// A frame, where it is in the video.
         struct frame {
-            sc::image picture;
+            image::picture picture;
             std::size_t number;             // counting from 0
             std::chrono::milliseconds time; // from the start
         };

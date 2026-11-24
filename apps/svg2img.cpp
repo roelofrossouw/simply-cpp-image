@@ -1,5 +1,5 @@
 // svg2img: an SVG file as an image (PNG, JPEG, WebP, BMP or TIFF), at its own size or one given:
-// read by sc-graphics' sc::drawing and drawn on an sc::image (sc::svg2png). --help lists the options.
+// read by sc-graphics' sc::graphics::drawing and drawn on an sc::image::picture (sc::image::svg2png). --help lists the options.
 
 #include <algorithm>
 #include <cctype>
@@ -70,23 +70,23 @@ int main(int argc, char **argv) {
         if (width == 0 && height == 0) {
             const double scale = args.as<double>("scale");
             if (scale <= 0) throw std::invalid_argument{"--scale must be above 0"};
-            const auto own = sc::svg2png::Size(svg);
+            const auto own = sc::image::svg2png::size(svg);
             width = std::max(1, static_cast<int>(std::lround(own.width() * scale)));
             height = std::max(1, static_cast<int>(std::lround(own.height() * scale)));
         }
         const auto background_name = args.as<std::string>("background", "white");
         const sc::color background{background_name};
 
-        const std::string png = sc::svg2png::FromString(svg, width, height, background);
+        const std::string png = sc::image::svg2png::from_string(svg, width, height, background);
         if (type == "png") {
             std::ofstream out{output, std::ios::binary};
             out << png;
             if (!out) throw std::runtime_error{"can't write " + output.string()};
         } else {
-            const sc::image picture{png};
+            const sc::image::picture picture{png};
             if (!picture.save(output.string(), args.as<int>("quality"))) throw std::runtime_error{"can't write " + output.string()};
         }
-        const sc::image written{output.string()};
+        const sc::image::picture written{output.string()};
         std::cout << output.string() << ": " << written.size().width() << "x" << written.size().height() << " " << type << '\n';
     } catch (const std::exception &error) {
         std::cerr << "svg2img: " << error.what() << '\n';

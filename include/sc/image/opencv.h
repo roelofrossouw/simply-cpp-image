@@ -6,12 +6,21 @@
 #include <vector>
 #include <sc/graphics/canvas.h>
 
-namespace sc {
+namespace sc::image {
     namespace impl {
         struct internals;
     }
 
-    /// An image (OpenCV), and an sc::canvas: shapes and text are drawn on it in place with
+    /// What reading images writes to stderr. libjpeg's warnings about a damaged JPEG ("Corrupt
+    /// JPEG data: premature end of data segment", the image still read as far as it goes) are
+    /// warnings, written at warning (the default) and above: log_level(sc::log_level::error)
+    /// keeps them quiet. On Linux, where OpenCV uses the system's libjpeg; elsewhere they're
+    /// always written. OpenCV's own messages follow it too, and below warning so do FFmpeg's
+    /// about videos it can't read ("moov atom not found"): set it before opening a video.
+    void log_level(sc::log_level level);
+    [[nodiscard]] sc::log_level log_level();
+
+    /// An image (OpenCV), and an sc::graphics::canvas: shapes and text are drawn on it in place with
     /// draw(shape, appearance), the same as on an sc::pdflite::writer, in pixels. Points are rounded to whole
     /// pixels, lines antialiased, clip paths honoured. Colours are blended by their alpha (a gradient's stops'
     /// alphas aren't), as grey on a single-channel image. Text is drawn in the installed face font.face()
@@ -19,58 +28,49 @@ namespace sc {
     /// font.size as the em in pixels, as on the other canvases, and measured (canvas::text_width() and
     /// the rest) in the same face. Only when no outline font is installed do OpenCV's Hershey fonts
     /// stand in: sans-serif or serif, bold from weight 600, italic, font.size as the text's height.
-    class image : public canvas {
+    class picture : public graphics::canvas {
     public:
-        /// What reading images writes to stderr. libjpeg's warnings about a damaged JPEG ("Corrupt
-        /// JPEG data: premature end of data segment", the image still read as far as it goes) are
-        /// warnings, written at warning (the default) and above: log_level(sc::log_level::error)
-        /// keeps them quiet. On Linux, where OpenCV uses the system's libjpeg; elsewhere they're
-        /// always written. OpenCV's own messages follow it too, and below warning so do FFmpeg's
-        /// about videos it can't read ("moov atom not found"): set it before opening a video.
-        static void log_level(sc::log_level level);
-        [[nodiscard]] static sc::log_level log_level();
-
-        image();
+        picture();
 
         /// Loads an image from a file as three-channel BGR, throwing std::runtime_error if it can't
         /// be read. filename may instead be PNG data itself (as from svg2png).
-        image(const std::string &filename);
+        picture(const std::string &filename);
 
         /// A blank three-channel image of this size, filled with colour (its alpha ignored).
-        image(size_i size, const color &colour);
+        picture(size_i size, const color &colour);
 
         /// Creates an image from a contiguous RGB float blob in [1, 3, height, width] order, with
         /// values in [0, 1]. Throws std::invalid_argument on a null blob, a non-positive size or
         /// a value that isn't finite.
-        [[nodiscard]] static image from_blob(const float *blob, int width, int height);
+        [[nodiscard]] static picture from_blob(const float *blob, int width, int height);
 
         /// Creates an image from a contiguous single-channel or RGB float blob in
         /// [1, channels, height, width] order; one channel gives a single-channel (grey) image.
-        [[nodiscard]] static image from_blob(const float *blob, int width, int height, int channels);
+        [[nodiscard]] static picture from_blob(const float *blob, int width, int height, int channels);
 
         /// Inverts generate_blob() preprocessing: pixel = blob_value / scale + mean, clamped to
         /// 0..255. Pass the same scale, mean and swap_rb given to generate_blob().
-        [[nodiscard]] static image from_blob(const float *blob, int width, int height,
+        [[nodiscard]] static picture from_blob(const float *blob, int width, int height,
                                              double scale, double mean, bool swap_rb);
 
         /// Inverts generate_blob() preprocessing for a single-channel or RGB blob.
-        [[nodiscard]] static image from_blob(const float *blob, int width, int height, int channels,
+        [[nodiscard]] static picture from_blob(const float *blob, int width, int height, int channels,
                                              double scale, double mean, bool swap_rb);
 
         /// Creates an independent copy of another image, blob and padding included.
-        image(const image &copy_from);
+        picture(const picture &copy_from);
 
         /// Takes another image's storage; that one is left empty(), fit only to be assigned or destroyed.
-        image(image &&move_from) noexcept;
+        picture(picture &&move_from) noexcept;
 
         /// Call after changing the pixels: drops the padding and the blob, and rereads the size.
         void image_changed();
 
-        ~image() override;
+        ~picture() override;
 
-        image &operator=(const image &copy_from);
+        picture &operator=(const picture &copy_from);
 
-        image &operator=(image &&move_from) noexcept;
+        picture &operator=(picture &&move_from) noexcept;
 
         /// In pixels, padding included.
         [[nodiscard]] size_i size() const;
@@ -101,7 +101,7 @@ namespace sc {
         bool save(const std::string &filename, int quality) const;
 
         /// A resized copy; see resize_to().
-        [[nodiscard]] image resized(size_i new_size) const;
+        [[nodiscard]] picture resized(size_i new_size) const;
 
         /// The outermost outlines of the non-zero (white) areas, each a polygon to draw with draw().
         /// A colour image is greyed first. method is OpenCV's ContourApproximationModes (2: simple).
@@ -112,18 +112,18 @@ namespace sc {
         [[nodiscard]] std::vector<rotated_rect> find_min_area_rects(double minimum_area = 0, int method = 2) const;
 
         /// Both images joined horizontally; they must be non-empty, of equal height and channels.
-        static image side_by_side(const image &left, const image &right);
+        static picture side_by_side(const picture &left, const picture &right);
 
         /// Resizes in place; a width or height of 0 or less follows from the other, keeping the
         /// aspect ratio (not both). Drops the padding and the blob.
         void resize_to(size_i new_size);
 
         /// A copy of area, which must lie within the image (std::invalid_argument otherwise).
-        image cropped(const rect_i &area) const;
+        picture cropped(const rect_i &area) const;
 
         /// Cuts out a rotated rectangle and turns it level, its width horizontal; throws if it lies
         /// outside the image.
-        [[nodiscard]] image deskewed(const rotated_rect &area) const;
+        [[nodiscard]] picture deskewed(const rotated_rect &area) const;
 
         /// Rotates clockwise in place by a multiple of 90 degrees (negative turns anticlockwise);
         /// other angles leave the pixels as they are.
@@ -134,7 +134,7 @@ namespace sc {
         void generate_blob(double scale, double mean, bool swap_rb) const;
 
         /// Like cropped(), but unchecked: OpenCV throws if area isn't within the image.
-        image crop(const rect_i &area) const;
+        picture crop(const rect_i &area) const;
 
         /// Crops in place to area, unchecked as crop().
         void crop_to(const rect_i &area);
@@ -165,7 +165,7 @@ namespace sc {
 
         /// A copy warped (rotation, uniform scale and shift, fitted to five point pairs, as face
         /// landmarks) to tosize.
-        image warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i tosize = {112, 112}) const;
+        picture warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i tosize = {112, 112}) const;
 
         /// Thresholds in place: values above threshold become 255, the rest 0, as 8-bit.
         void mask(double threshold = 0.5);
@@ -180,29 +180,29 @@ namespace sc {
         //
         // TODO: radial gradients and gradient strokes, masks (by luminance; SVG masks are read as
         // clips), and a gradient's stops' alphas.
-        void paint_polygon(const polygon &shape, const sc::appearance &look) override;
+        void paint_polygon(const polygon &shape, const sc::graphics::appearance &look) override;
 
-        void paint_circle(const sc::circle &shape, const sc::appearance &look) override;
+        void paint_circle(const sc::circle &shape, const sc::graphics::appearance &look) override;
 
-        void paint_line(const sc::line &shape, const sc::stroke &stroke) override;
+        void paint_line(const sc::line &shape, const sc::graphics::stroke &stroke) override;
 
-        void paint_text(const sc::text &sample, const sc::fill &fill) override;
+        void paint_text(const sc::graphics::text &sample, const sc::graphics::fill &fill) override;
 
         // Decoded and resampled into place (bilinear), its alpha honoured with smooth edges.
         // Throws std::runtime_error when OpenCV can't decode it.
-        void paint_bitmap(const bitmap &picture, const transform &placement) override;
+        void paint_bitmap(const graphics::bitmap &picture, const transform &placement) override;
 
         // In pixels, in the face that draws it (Hershey without one); they work on an empty image too.
-        double measure_width(const sc::text &sample) override;
+        double measure_width(const sc::graphics::text &sample) override;
 
-        double measure_x_height(const font &font) override;
+        double measure_x_height(const graphics::font &font) override;
 
-        double measure_cap_height(const font &font) override;
+        double measure_cap_height(const graphics::font &font) override;
 
         // All of a path's outlines filled together, curves as short lines, by the fill's rule: even-odd
         // (every crossing toggles), or nonzero (outlines add up by their direction; one wound the
         // other way cuts a hole).
-        void paint_path(const path &shape, const sc::appearance &look) override;
+        void paint_path(const path &shape, const sc::graphics::appearance &look) override;
 
     public:
         // Clipped to inside shape's outlines (each filled on its own, so overlapping ones add up,
@@ -213,7 +213,7 @@ namespace sc {
 
     private:
         friend class video; // makes its frames
-        friend struct image_quality; // measures its pixels
+        friend struct quality; // measures its pixels
 
         std::unique_ptr<impl::internals> impl;
         size_i size_;

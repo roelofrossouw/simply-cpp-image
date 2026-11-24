@@ -99,11 +99,11 @@ namespace {
     }
 }
 
-namespace sc {
-    image::image() : impl(std::make_unique<impl::internals>()) {
+namespace sc::image {
+    picture::picture() : impl(std::make_unique<impl::internals>()) {
     }
 
-    image::image(const std::string &filename) : impl(std::make_unique<impl::internals>()) {
+    picture::picture(const std::string &filename) : impl(std::make_unique<impl::internals>()) {
         const std::string png_signature{"\x89PNG\r\n\x1A\n", 8};
         if (filename.substr(0, 8) == png_signature) {
             std::vector<uchar> buffer(filename.begin(), filename.end());
@@ -115,14 +115,14 @@ namespace sc {
         size_ = {impl->image_mat.cols, impl->image_mat.rows};
     }
 
-    image::image(const size_i size, const color &colour) : impl(std::make_unique<impl::internals>()) {
+    picture::picture(const size_i size, const color &colour) : impl(std::make_unique<impl::internals>()) {
         if (size.width() <= 0 || size.height() <= 0) throw std::invalid_argument{"sc::image: a blank image needs a size above 0"};
         const auto channel = [](const double v) { return std::clamp(v, 0.0, 1.0) * 255; };
         impl->image_mat = cv::Mat(size.height(), size.width(), CV_8UC3, cv::Scalar{channel(colour.blue()), channel(colour.green()), channel(colour.red())});
         size_ = size;
     }
 
-    std::string image::encoded(const std::string &type, const int quality) const {
+    std::string picture::encoded(const std::string &type, const int quality) const {
         const auto extension = sc::lowercase(type.starts_with('.') ? type : "." + type);
         const auto settings = quality_settings(extension, quality);
         std::vector<uchar> bytes;
@@ -135,20 +135,20 @@ namespace sc {
         return {bytes.begin(), bytes.end()};
     }
 
-    image image::from_blob(const float *blob, const int width, const int height) {
+    picture picture::from_blob(const float *blob, const int width, const int height) {
         return from_blob(blob, width, height, 3);
     }
 
-    image image::from_blob(const float *blob, const int width, const int height, const int channels) {
+    picture picture::from_blob(const float *blob, const int width, const int height, const int channels) {
         return from_blob(blob, width, height, channels, 1.0 / 255.0, 0.0, true);
     }
 
-    image image::from_blob(const float *blob, const int width, const int height,
+    picture picture::from_blob(const float *blob, const int width, const int height,
                            const double scale, const double mean, const bool swap_rb) {
         return from_blob(blob, width, height, 3, scale, mean, swap_rb);
     }
 
-    image image::from_blob(const float *blob, const int width, const int height, const int channels,
+    picture picture::from_blob(const float *blob, const int width, const int height, const int channels,
                            const double scale, const double mean, const bool swap_rb) {
         if (!blob) throw std::invalid_argument{"Image blob cannot be null"};
         if (width <= 0 || height <= 0) throw std::invalid_argument{"Image blob dimensions must be positive"};
@@ -157,7 +157,7 @@ namespace sc {
         if (!std::isfinite(scale) || scale == 0.0 || !std::isfinite(mean))
             throw std::invalid_argument{"Image blob scale must be finite and non-zero, and mean must be finite"};
 
-        image result;
+        picture result;
         result.impl->image_mat.create(height, width, channels == 1 ? CV_8UC1 : CV_8UC3);
         const size_t pixel_count = static_cast<size_t>(width) * height;
         if (channels == 1) {
@@ -187,7 +187,7 @@ namespace sc {
         return result;
     }
 
-    image::image(const image &copy_from) : impl(std::make_unique<impl::internals>()) {
+    picture::picture(const picture &copy_from) : impl(std::make_unique<impl::internals>()) {
         impl->image_mat = copy_from.impl->image_mat.clone();
         impl->blob_mat = copy_from.impl->blob_mat.clone();
         impl->blob_shape = copy_from.impl->blob_shape;
@@ -198,19 +198,19 @@ namespace sc {
         size_ = copy_from.size_;
     }
 
-    image::image(image &&move_from) noexcept = default;
+    picture::picture(picture &&move_from) noexcept = default;
 
-    image &image::operator=(const image &copy_from) {
+    picture &picture::operator=(const picture &copy_from) {
         if (this == &copy_from) return *this;
-        image copy{copy_from};
+        picture copy{copy_from};
         std::swap(impl, copy.impl);
         std::swap(size_, copy.size_);
         return *this;
     }
 
-    image &image::operator=(image &&move_from) noexcept = default;
+    picture &picture::operator=(picture &&move_from) noexcept = default;
 
-    void image::image_changed() {
+    void picture::image_changed() {
         impl->padding = {0, 0};
         impl->blob_mat.release();
         impl->blob_data = {};
@@ -218,29 +218,29 @@ namespace sc {
         size_ = {impl->image_mat.cols, impl->image_mat.rows};
     }
 
-    image::~image() = default;
+    picture::~picture() = default;
 
-    size_i image::size() const {
+    size_i picture::size() const {
         return size_;
     }
 
-    size_i image::cropped_size() const {
+    size_i picture::cropped_size() const {
         return size_ - padding() * 2;
     }
 
-    size_i image::padding() const {
+    size_i picture::padding() const {
         return impl->padding;
     }
 
-    bool image::empty() const {
+    bool picture::empty() const {
         return !impl || impl->image_mat.empty();
     }
 
-    int image::channels() const {
+    int picture::channels() const {
         return empty() ? 0 : impl->image_mat.channels();
     }
 
-    void image::channels(const int new_channels) {
+    void picture::channels(const int new_channels) {
         if (new_channels != 1 && new_channels != 3)
             throw std::invalid_argument{"Image channels must be one or three"};
         if (empty()) throw std::invalid_argument{"Cannot convert an empty image"};
@@ -253,22 +253,22 @@ namespace sc {
         impl->blob_shape.clear();
     }
 
-    bool image::save(const std::string &filename) const {
+    bool picture::save(const std::string &filename) const {
         return cv::imwrite(filename, impl->image_mat);
     }
 
-    bool image::save(const std::string &filename, const int quality) const {
+    bool picture::save(const std::string &filename, const int quality) const {
         const auto extension = sc::lowercase(std::filesystem::path{filename}.extension().string());
         return cv::imwrite(filename, impl->image_mat, quality_settings(extension, quality));
     }
 
-    image image::resized(const size_i new_size) const {
-        image result{*this};
+    picture picture::resized(const size_i new_size) const {
+        picture result{*this};
         result.resize_to(new_size);
         return result;
     }
 
-    std::vector<polygon_i> image::find_contours(const int method) const {
+    std::vector<polygon_i> picture::find_contours(const int method) const {
         std::vector<std::vector<cv::Point> > cv_contours;
         cv::Mat input;
         if (impl->image_mat.channels() == 1) input = impl->image_mat.clone();
@@ -285,7 +285,7 @@ namespace sc {
         return contours;
     }
 
-    std::vector<rotated_rect> image::find_min_area_rects(const double minimum_area, const int method) const {
+    std::vector<rotated_rect> picture::find_min_area_rects(const double minimum_area, const int method) const {
         if (!std::isfinite(minimum_area) || minimum_area < 0)
             throw std::invalid_argument{"Minimum contour rectangle area must be finite and non-negative"};
         const auto contours = find_contours(method);
@@ -310,18 +310,18 @@ namespace sc {
         return rectangles;
     }
 
-    image image::side_by_side(const image &left, const image &right) {
+    picture picture::side_by_side(const picture &left, const picture &right) {
         if (left.empty() || right.empty())
             throw std::invalid_argument{"Cannot join empty images"};
         if (left.size_.height() != right.size_.height())
             throw std::invalid_argument{"Images must have equal heights"};
-        image result;
+        picture result;
         cv::hconcat(left.impl->image_mat, right.impl->image_mat, result.impl->image_mat);
         result.size_ = {result.impl->image_mat.cols, result.impl->image_mat.rows};
         return result;
     }
 
-    void image::resize_to(size_i new_size) {
+    void picture::resize_to(size_i new_size) {
         if (new_size.width() <= 0 && new_size.height() <= 0) throw std::invalid_argument{"Image size must be positive"};
         if (new_size.width() <= 0) new_size.width(new_size.height() * size_.width() / size_.height());
         if (new_size.height() <= 0) new_size.height(new_size.width() * size_.height() / size_.width());
@@ -329,21 +329,21 @@ namespace sc {
         image_changed();
     }
 
-    image image::cropped(const rect_i &area) const {
+    picture picture::cropped(const rect_i &area) const {
         const rect_i bounds{0, 0, size_.width(), size_.height()};
         if (area.left() < bounds.left() || area.top() < bounds.top()
             || area.right() > bounds.right() || area.bottom() > bounds.bottom()
             || area.width() <= 0 || area.height() <= 0)
             throw std::invalid_argument{"Crop area is outside the image"};
 
-        image result;
+        picture result;
         result.impl->image_mat = impl->image_mat(
             cv::Rect(area.left(), area.top(), area.width(), area.height())).clone();
         result.size_ = {area.width(), area.height()};
         return result;
     }
 
-    image image::deskewed(const rotated_rect &bounds) const {
+    picture picture::deskewed(const rotated_rect &bounds) const {
         if (empty()) throw std::invalid_argument{"Cannot crop an empty image"};
         if (!std::isfinite(bounds.width()) || !std::isfinite(bounds.height()) ||
             !std::isfinite(bounds.angle()) || bounds.width() <= 0 || bounds.height() <= 0)
@@ -391,7 +391,7 @@ namespace sc {
         const cv::Rect valid_crop = crop_bounds & cv::Rect{0, 0, rotated.cols, rotated.rows};
         if (valid_crop.empty()) throw std::invalid_argument{"Rotated polygon is outside the image"};
 
-        image result;
+        picture result;
         result.impl->image_mat = rotated(valid_crop).clone();
         result.size_ = {valid_crop.width, valid_crop.height};
         return result;
@@ -410,7 +410,7 @@ namespace sc {
 
         // The installed face that draws font's text, as outlines: none when no outline font is
         // installed (or only a colour one), and then OpenCV's Hershey font stands in.
-        std::optional<font_face> outline_face(const font &spec) {
+        std::optional<graphics::font_face> outline_face(const graphics::font &spec) {
             auto face = spec.face();
             if (face && !face->outline("H", 16).empty()) return face;
             return std::nullopt;
@@ -422,7 +422,7 @@ namespace sc {
             double scale;
             int thickness;
 
-            explicit hershey(const font &font) {
+            explicit hershey(const graphics::font &font) {
                 const bool bold = font.weight >= 600;
                 face = font.family == "serif" ? (bold ? cv::FONT_HERSHEY_TRIPLEX : cv::FONT_HERSHEY_COMPLEX)
                                               : (bold ? cv::FONT_HERSHEY_DUPLEX : cv::FONT_HERSHEY_SIMPLEX);
@@ -492,7 +492,7 @@ namespace sc {
 
         // The fill's colours over area: flat, or a gradient's at each pixel's centre (alpha is applied by
         // translucent(); a gradient's stops' alphas are still ignored).
-        cv::Mat fill_colours(const sc::fill &fill, const cv::Rect &area, const int channels) {
+        cv::Mat fill_colours(const sc::graphics::fill &fill, const cv::Rect &area, const int channels) {
             const int type = CV_MAKETYPE(CV_32F, channels);
             if (!fill.gradient()) return {area.size(), type, cvcolor(fill.colour(), channels)};
             const auto &gradient = *fill.gradient();
@@ -508,10 +508,10 @@ namespace sc {
         }
 
         // Fills shape by fill (its rule for several outlines), blended in by coverage.
-        void fill_outlines(cv::Mat &target, const outlines &shape, const sc::fill &fill) {
+        void fill_outlines(cv::Mat &target, const outlines &shape, const sc::graphics::fill &fill) {
             const cv::Rect area = bounds_within(shape, target);
             if (area.empty()) return;
-            const bool nonzero = fill.rule() == fill_rule::nonzero && shape.size() > 1;
+            const bool nonzero = fill.rule() == graphics::fill_rule::nonzero && shape.size() > 1;
             blend(target, area, nonzero ? coverage_nonzero(shape, area) : coverage_even_odd(shape, area), fill_colours(fill, area, target.channels()));
         }
     }
@@ -552,13 +552,13 @@ namespace sc {
         }
 
         // How opaque a fill is: its colour's alpha (a gradient's stops' alphas are still ignored).
-        double opacity_of(const sc::fill &fill) { return fill.gradient() ? 1 : fill.colour().alpha(); }
+        double opacity_of(const sc::graphics::fill &fill) { return fill.gradient() ? 1 : fill.colour().alpha(); }
 
         // Glyph outlines filled nonzero, as fonts are drawn: at four times the resolution without
         // antialiasing (exact winding), then scaled down by area, so each pixel's coverage is how much
         // of it the glyphs take. (fillPoly's own antialiasing spreads edges outward by about half a
         // pixel, which makes straight stems heavier than curves at text sizes.)
-        void fill_glyphs(cv::Mat &target, const path &glyphs, const sc::fill &fill) {
+        void fill_glyphs(cv::Mat &target, const path &glyphs, const sc::graphics::fill &fill) {
             constexpr int samples = 4, shift = 4;
             constexpr double scale = samples * (1 << shift);
             const rect box = glyphs.bounds();
@@ -588,7 +588,7 @@ namespace sc {
     namespace {
         // A bitmap decoded: its colours as the target's channels, and its alpha (opaque when it has
         // none), both 8-bit.
-        std::pair<cv::Mat, cv::Mat> decoded(const bitmap &picture, const int channels) {
+        std::pair<cv::Mat, cv::Mat> decoded(const graphics::bitmap &picture, const int channels) {
             const std::vector<uchar> bytes(picture.bytes().begin(), picture.bytes().end());
             cv::Mat read = cv::imdecode(bytes, cv::IMREAD_UNCHANGED);
             if (read.empty()) throw std::runtime_error("sc::image: can't decode the bitmap");
@@ -610,7 +610,7 @@ namespace sc {
         }
     }
 
-    void image::paint_bitmap(const bitmap &picture, const transform &placement) {
+    void picture::paint_bitmap(const graphics::bitmap &picture, const transform &placement) {
         if (empty()) return;
         const auto [colours, alpha] = decoded(picture, impl->image_mat.channels());
         const rect box = placement.apply(rect{0, 0, 1, 1}).bounds();
@@ -636,7 +636,7 @@ namespace sc {
         clipped(*impl, [&](cv::Mat &target) { blend(target, area, coverage, warped); });
     }
 
-    void image::paint_polygon(const polygon &shape, const sc::appearance &look) {
+    void picture::paint_polygon(const polygon &shape, const sc::graphics::appearance &look) {
         if (empty()) return;
         const auto &stroke = look.stroke();
         const auto &fill = look.fill();
@@ -655,7 +655,7 @@ namespace sc {
             });
     }
 
-    void image::paint_circle(const sc::circle &shape, const sc::appearance &look) {
+    void picture::paint_circle(const sc::circle &shape, const sc::graphics::appearance &look) {
         if (empty()) return;
         const auto &stroke = look.stroke();
         const auto &fill = look.fill();
@@ -680,14 +680,14 @@ namespace sc {
             });
     }
 
-    void image::paint_line(const sc::line &shape, const sc::stroke &stroke) {
+    void picture::paint_line(const sc::line &shape, const sc::graphics::stroke &stroke) {
         if (empty()) return;
         translucent(*impl, stroke.colour().alpha(), [&](cv::Mat &target) {
             cv::line(target, pixel(shape.from()), pixel(shape.to()), cvcolor(stroke.colour(), channels()), thickness(stroke.width()), cv::LINE_AA);
         });
     }
 
-    void image::paint_text(const sc::text &sample, const sc::fill &fill) {
+    void picture::paint_text(const sc::graphics::text &sample, const sc::graphics::fill &fill) {
         if (empty() || sample.content.empty()) return;
         // The font's own glyphs, as they're measured (text-anchor, layout).
         if (const auto face = outline_face(sample.font)) {
@@ -703,7 +703,7 @@ namespace sc {
         });
     }
 
-    void image::paint_path(const path &shape, const sc::appearance &look) {
+    void picture::paint_path(const path &shape, const sc::graphics::appearance &look) {
         if (empty()) return;
         const auto &stroke = look.stroke();
         const auto &fill = look.fill();
@@ -728,7 +728,7 @@ namespace sc {
             });
     }
 
-    void image::push_clip(const path &shape) {
+    void picture::push_clip(const path &shape) {
         // Each outline filled on its own, so outlines that overlap add up (as the nonzero rule
         // does), and within the clip already pushed. An empty image keeps an empty mask, so the
         // pushes and pops still pair up.
@@ -747,28 +747,28 @@ namespace sc {
         impl->clips.push_back(mask);
     }
 
-    void image::pop_clip() {
+    void picture::pop_clip() {
         if (!impl->clips.empty()) impl->clips.pop_back();
     }
 
-    double image::measure_width(const sc::text &sample) {
+    double picture::measure_width(const sc::graphics::text &sample) {
         if (const auto face = outline_face(sample.font)) return face->width(sample.content, sample.font.size);
         return hershey{sample.font}.size(sample.content).width;
     }
 
-    double image::measure_x_height(const font &font) {
+    double picture::measure_x_height(const graphics::font &font) {
         if (const auto face = outline_face(font)) return face->x_height(font.size);
         // getTextSize() gives every text the font's full height, so it can't measure an x; Hershey
         // lowercase is two thirds of the capitals (14 of 21 font units).
         return measure_cap_height(font) * 2 / 3;
     }
 
-    double image::measure_cap_height(const font &font) {
+    double picture::measure_cap_height(const graphics::font &font) {
         if (const auto face = outline_face(font)) return face->cap_height(font.size);
         return hershey{font}.size("H").height;
     }
 
-    void image::generate_blob(const double scale, const double mean, const bool swap_rb) const {
+    void picture::generate_blob(const double scale, const double mean, const bool swap_rb) const {
         const cv::Scalar scalar_mean{mean, mean, mean};
         cv::dnn::blobFromImage(impl->image_mat, impl->blob_mat, scale, cvsize(size_), scalar_mean, swap_rb, false);
         impl->blob_shape.clear();
@@ -783,27 +783,27 @@ namespace sc {
         }
     }
 
-    float *image::blob() const {
+    float *picture::blob() const {
         require_blob(*impl);
         return impl->blob_data.data();
     }
 
-    size_t image::blob_size() const {
+    size_t picture::blob_size() const {
         require_blob(*impl);
         return impl->blob_data.size();
     }
 
-    const int64_t *image::blob_shape() const {
+    const int64_t *picture::blob_shape() const {
         require_blob(*impl);
         return impl->blob_shape.data();
     }
 
-    size_t image::blob_shape_size() const {
+    size_t picture::blob_shape_size() const {
         require_blob(*impl);
         return impl->blob_shape.size();
     }
 
-    image image::warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i to_size) const {
+    picture picture::warp(const std::array<point, 5> &map_from, const std::array<point, 5> &map_to, size_i to_size) const {
         std::vector<cv::Point2f> src;
         std::vector<cv::Point2f> dst;
         src.reserve(5);
@@ -814,24 +814,24 @@ namespace sc {
         const cv::Mat M = cv::estimateAffinePartial2D(src, dst, cv::noArray(), cv::LMEDS);
         cv::Mat warped;
         cv::warpAffine(impl->image_mat, warped, M, cvsize(to_size));
-        image copy(*this);
+        picture copy(*this);
         copy.impl->image_mat = warped;
         copy.image_changed();
         return {copy};
     }
 
-    void image::crop_to(const rect_i &area) {
+    void picture::crop_to(const rect_i &area) {
         impl->image_mat = impl->image_mat(cv::Rect(area.left(), area.top(), area.width(), area.height()));
         image_changed();
     }
 
-    image image::crop(const rect_i &area) const {
-        image new_image{*this};
+    picture picture::crop(const rect_i &area) const {
+        picture new_image{*this};
         new_image.crop_to(area);
         return new_image;
     }
 
-    void image::rotate(int degrees) {
+    void picture::rotate(int degrees) {
         while (degrees < 0) degrees += 360;
         degrees %= 360;
         if (degrees == 90) cv::rotate(impl->image_mat, impl->image_mat, cv::ROTATE_90_CLOCKWISE);
@@ -840,7 +840,7 @@ namespace sc {
         image_changed();
     }
 
-    void image::crop() {
+    void picture::crop() {
         impl->image_mat = impl->image_mat(
             cv::Rect(impl->padding.width(), impl->padding.height(),
                      size_.width() - 2 * impl->padding.width(), size_.height() - 2 * impl->padding.height()
@@ -849,11 +849,11 @@ namespace sc {
         image_changed();
     }
 
-    int image::snap_to_stride(const int value, const int stride) {
+    int picture::snap_to_stride(const int value, const int stride) {
         return (value + stride - 1) / stride * stride;
     }
 
-    size_i image::get_snap_size(int stride, const std::vector<size_i> &valid) {
+    size_i picture::get_snap_size(int stride, const std::vector<size_i> &valid) {
         size_i best{size_};
         if (!valid.empty()) {
             best = valid.back();
@@ -876,7 +876,7 @@ namespace sc {
         return best;
     }
 
-    void image::snap_to_size(int stride, const std::vector<size_i> &valid) {
+    void picture::snap_to_size(int stride, const std::vector<size_i> &valid) {
         auto new_size = get_snap_size(stride, valid);
         const float scale = std::min((float) new_size.width() / (float) size_.width(),
                                      (float) new_size.height() / (float) size_.height());
@@ -894,7 +894,7 @@ namespace sc {
         impl->padding = keep_padding;
     }
 
-    void image::mask(double threshold) {
+    void picture::mask(double threshold) {
         cv::threshold(impl->image_mat, impl->image_mat, threshold, 255, cv::THRESH_BINARY);
         impl->image_mat.convertTo(impl->image_mat, CV_8U);
     }

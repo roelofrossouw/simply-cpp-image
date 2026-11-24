@@ -13,10 +13,10 @@
 #include <stdexcept>
 #include <vector>
 
-namespace sc {
+namespace sc::image {
     namespace {
-        image_quality corrupt(std::string reason) {
-            image_quality quality;
+        quality corrupt(std::string reason) {
+            quality quality;
             quality.reason = std::move(reason);
             return quality;
         }
@@ -47,12 +47,12 @@ namespace sc {
             return bits;
         }
 
-        image_quality measure(const cv::Mat &picture, const image_quality::limits &given) {
+        quality measure(const cv::Mat &picture, const quality::limits &given) {
             if (given.analysis_width < 16 || given.grid_columns < 1 || given.grid_rows < 1)
                 throw std::invalid_argument{"image_quality: analysis_width must be 16 or more, the grid at least 1 x 1"};
             if (picture.empty()) return corrupt("empty image");
 
-            image_quality quality;
+            quality quality;
             quality.size = {picture.cols, picture.rows};
 
             cv::Mat scaled = picture;
@@ -93,7 +93,7 @@ namespace sc {
             quality.sharpness = *middle;
             quality.empty_share = double(empty) / double(cell_sharpness.size());
 
-            using enum image_quality::verdict;
+            using enum quality::verdict;
             if (quality.contrast < given.uniform_contrast) quality.outcome = uniform;
             else if (quality.brightness < given.dark_brightness) quality.outcome = dark;
             else if (quality.brightness > given.bright_brightness) quality.outcome = bright;
@@ -111,11 +111,11 @@ namespace sc {
         }
     }
 
-    image_quality image_quality::of(const image &picture, const limits &given) {
+    quality quality::of(const picture &picture, const limits &given) {
         return measure(picture.impl->image_mat, given);
     }
 
-    image_quality image_quality::of_bytes(const std::string_view bytes, const limits &given) {
+    quality quality::of_bytes(const std::string_view bytes, const limits &given) {
         if (bytes.empty()) return corrupt("empty file");
         const cv::Mat buffer{1, static_cast<int>(bytes.size()), CV_8UC1, const_cast<char *>(bytes.data())};
         cv::Mat decoded;
@@ -134,20 +134,20 @@ namespace sc {
         return quality;
     }
 
-    image_quality image_quality::of(const std::filesystem::path &file, const limits &given) {
+    quality quality::of(const std::filesystem::path &file, const limits &given) {
         std::ifstream in{file, std::ios::binary};
         if (!in) return corrupt("can't read " + file.string());
         const std::string bytes{std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{}};
         return of_bytes(bytes, given);
     }
 
-    int image_quality::differs(const std::uint64_t one, const std::uint64_t other) {
+    int quality::differs(const std::uint64_t one, const std::uint64_t other) {
         return std::popcount(one ^ other);
     }
 
-    std::string to_string(const image_quality::verdict verdict) {
+    std::string to_string(const quality::verdict verdict) {
         switch (verdict) {
-            using enum image_quality::verdict;
+            using enum quality::verdict;
             case ok: return "ok";
             case corrupt: return "corrupt";
             case uniform: return "uniform";

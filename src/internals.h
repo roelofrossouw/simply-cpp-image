@@ -11,7 +11,7 @@
 
 // What an sc::image holds, shared by the sources that make one (opencv.cpp, video.cpp); not
 // installed, so OpenCV stays out of the headers.
-namespace sc::impl {
+namespace sc::image::impl {
     struct internals {
         cv::Mat image_mat;
         cv::Mat blob_mat;

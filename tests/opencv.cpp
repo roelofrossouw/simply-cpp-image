@@ -23,7 +23,7 @@ namespace {
     constexpr int source_height = 427;
 
     // The colour of one pixel, as red, green and blue from 0 to 1.
-    std::array<double, 3> colour_at(const sc::image &picture, const int x, const int y) {
+    std::array<double, 3> colour_at(const sc::image::picture &picture, const int x, const int y) {
         auto pixel = picture.cropped(sc::rect_i{x, y, 1, 1});
         pixel.generate_blob(1.0 / 255, 0, true); // RGB planes
         const float *rgb = pixel.blob();
@@ -38,27 +38,27 @@ int main() {
 
     SECTION("Loading");
     {
-        const sc::image original{source};
+        const sc::image::picture original{source};
         CHECK(!original.empty());
         CHECK_EQ(original.size(), sc::size_i(source_width, source_height));
         CHECK_EQ(original.channels(), 3);
         // Nothing has been letterboxed yet.
         CHECK_EQ(original.cropped_size(), original.size());
         CHECK_EQ(original.padding(), sc::point(0, 0));
-        sc::image mutable_copy{original};
+        sc::image::picture mutable_copy{original};
 
-        const sc::image blank;
+        const sc::image::picture blank;
         CHECK(blank.empty());
         CHECK_EQ(blank.size(), sc::size_i(0, 0));
         CHECK_EQ(blank.channels(), 0);
 
         // A file that is not there is an error, not an empty image.
-        CHECK_THROWS_AS(sc::image{"resource/no-such-image.jpg"}, runtime_error);
+        CHECK_THROWS_AS(sc::image::picture{"resource/no-such-image.jpg"}, runtime_error);
     }
 
     SECTION("Converting color channels");
     {
-        sc::image converted{source};
+        sc::image::picture converted{source};
         const auto original_size = converted.size();
         converted.generate_blob(1.0 / 255, 0, true);
         CHECK_NOTHROW(converted.blob());
@@ -72,23 +72,23 @@ int main() {
         CHECK_EQ(converted.size(), original_size);
 
         CHECK_THROWS_AS(converted.channels(2), invalid_argument);
-        CHECK_THROWS_AS(sc::image{}.channels(1), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture{}.channels(1), invalid_argument);
     }
 
     SECTION("Copying and moving");
     {
-        const sc::image original{source};
+        const sc::image::picture original{source};
 
-        const sc::image copied{original};
+        const sc::image::picture copied{original};
         CHECK_EQ(copied.size(), original.size());
         CHECK(!original.empty()); // copying leaves the source alone
 
-        sc::image donor{original};
-        const sc::image moved{std::move(donor)};
+        sc::image::picture donor{original};
+        const sc::image::picture moved{std::move(donor)};
         CHECK_EQ(moved.size(), original.size());
         CHECK(donor.empty()); // the storage was handed over
 
-        sc::image assigned;
+        sc::image::picture assigned;
         assigned = original;
         CHECK_EQ(assigned.size(), original.size());
         CHECK(!assigned.empty());
@@ -96,13 +96,13 @@ int main() {
 
     SECTION("Resizing");
     {
-        const sc::image original{source};
+        const sc::image::picture original{source};
 
         const auto resized = original.resized({64, 48});
         CHECK_EQ(resized.size(), sc::size_i(64, 48));
         CHECK_EQ(original.size(), sc::size_i(source_width, source_height)); // resized() copies
 
-        sc::image in_place{original};
+        sc::image::picture in_place{original};
         in_place.resize_to({32, 16});
         CHECK_EQ(in_place.size(), sc::size_i(32, 16));
 
@@ -118,17 +118,17 @@ int main() {
 
     SECTION("Joining images horizontally");
     {
-        const sc::image left{source};
+        const sc::image::picture left{source};
         const auto right = left.resized({320, source_height});
-        const auto joined = sc::image::side_by_side(left, right);
+        const auto joined = sc::image::picture::side_by_side(left, right);
         CHECK_EQ(joined.size(), sc::size_i(source_width + 320, source_height));
-        CHECK_THROWS_AS(sc::image::side_by_side(left, sc::image{}), invalid_argument);
-        CHECK_THROWS_AS(sc::image::side_by_side(left, left.resized({320, 100})), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::side_by_side(left, sc::image::picture{}), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::side_by_side(left, left.resized({320, 100})), invalid_argument);
     }
 
     SECTION("Cropping");
     {
-        const sc::image original{source};
+        const sc::image::picture original{source};
 
         const auto cropped = original.cropped({0, 0, 100, 80});
         CHECK_EQ(cropped.size(), sc::size_i(100, 80));
@@ -149,7 +149,7 @@ int main() {
             0, 1, 1, 1, 0,
             0, 0, 0, 0, 0
         };
-        auto mask = sc::image::from_blob(pixels, 5, 5, 1);
+        auto mask = sc::image::picture::from_blob(pixels, 5, 5, 1);
         mask.mask(127);
         const auto contours = mask.find_contours();
         CHECK_EQ(contours.size(), size_t{1});
@@ -177,7 +177,7 @@ int main() {
         CHECK_THROWS_AS(mask.deskewed(invalid_area), invalid_argument);
 
         const float blank_pixels[14 * 12]{};
-        const auto blank_image = sc::image::from_blob(blank_pixels, 14, 12, 1);
+        const auto blank_image = sc::image::picture::from_blob(blank_pixels, 14, 12, 1);
         const sc::polygon tilted_rectangle{{2, 5}, {10, 1}, {12, 5}, {4, 9}};
         const auto tilted_crop = blank_image.deskewed(static_cast<sc::rotated_rect>(tilted_rectangle));
         CHECK_EQ(tilted_crop.size(), sc::size_i(9, 4));
@@ -186,8 +186,8 @@ int main() {
         const auto horizontal_crop = blank_image.deskewed(static_cast<sc::rotated_rect>(portrait_rectangle));
         CHECK_EQ(horizontal_crop.size(), sc::size_i(9, 2));
 
-        sc::image canvas{source};
-        for (const auto &contour: contours) CHECK_NOTHROW(canvas.draw(contour, sc::stroke{sc::color::Blue, 2}));
+        sc::image::picture canvas{source};
+        for (const auto &contour: contours) CHECK_NOTHROW(canvas.draw(contour, sc::graphics::stroke{sc::color::Blue, 2}));
         CHECK_NOTHROW(canvas.draw(sc::rect{1, 1, 2, 2}));
         CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 1, 2, 2}));
         CHECK_NOTHROW(canvas.draw(rectangle));
@@ -202,13 +202,13 @@ int main() {
     SECTION("Stride alignment");
     {
         // Rounds up to the next multiple, and leaves an exact multiple alone.
-        CHECK_EQ(sc::image::snap_to_stride(100, 32), 128);
-        CHECK_EQ(sc::image::snap_to_stride(128, 32), 128);
-        CHECK_EQ(sc::image::snap_to_stride(1, 32), 32);
-        CHECK_EQ(sc::image::snap_to_stride(0, 32), 0);
-        CHECK_EQ(sc::image::snap_to_stride(33, 16), 48);
+        CHECK_EQ(sc::image::picture::snap_to_stride(100, 32), 128);
+        CHECK_EQ(sc::image::picture::snap_to_stride(128, 32), 128);
+        CHECK_EQ(sc::image::picture::snap_to_stride(1, 32), 32);
+        CHECK_EQ(sc::image::picture::snap_to_stride(0, 32), 0);
+        CHECK_EQ(sc::image::picture::snap_to_stride(33, 16), 48);
 
-        sc::image snapped{source};
+        sc::image::picture snapped{source};
         const auto target = snapped.get_snap_size(32);
         CHECK_EQ(target, sc::size_i(640, 448)); // 427 rounds up to 448, 640 already fits
         CHECK_EQ(target.width() % 32, 0);
@@ -227,7 +227,7 @@ int main() {
 
     SECTION("Blob generation");
     {
-        sc::image blob_source{source};
+        sc::image::picture blob_source{source};
         // Nothing to hand out before a blob has been made.
         CHECK_THROWS_AS(blob_source.blob(), runtime_error);
         CHECK_THROWS_AS(blob_source.blob_size(), runtime_error);
@@ -256,7 +256,7 @@ int main() {
             0.5f, 0.25f,
             0.0f, 1.0f
         };
-        auto restored = sc::image::from_blob(blob, 2, 1);
+        auto restored = sc::image::picture::from_blob(blob, 2, 1);
         CHECK(!restored.empty());
         CHECK_EQ(restored.size(), sc::size_i(2, 1));
 
@@ -270,13 +270,13 @@ int main() {
             0.0f, -0.25f,
             -0.5f, 0.5f
         };
-        auto centered = sc::image::from_blob(centered_blob, 2, 1, 1.0 / 255, 127.5, true);
+        auto centered = sc::image::picture::from_blob(centered_blob, 2, 1, 1.0 / 255, 127.5, true);
         centered.generate_blob(1.0 / 255, 127.5, true);
         for (size_t i = 0; i < 6; ++i)
             CHECK_NEAR(centered.blob()[i], centered_blob[i], 1.0 / 255);
 
         const float grayscale_blob[] = {0.0f, 0.5f, 1.0f};
-        auto grayscale = sc::image::from_blob(grayscale_blob, 3, 1, 1);
+        auto grayscale = sc::image::picture::from_blob(grayscale_blob, 3, 1, 1);
         CHECK_EQ(grayscale.size(), sc::size_i(3, 1));
         grayscale.generate_blob(1.0 / 255, 0, true);
         CHECK_EQ(grayscale.blob_shape()[1], 1L);
@@ -285,17 +285,17 @@ int main() {
             CHECK_NEAR(grayscale.blob()[i], grayscale_blob[i], 1.0 / 255);
         }
 
-        CHECK_THROWS_AS(sc::image::from_blob(nullptr, 2, 1), invalid_argument);
-        CHECK_THROWS_AS(sc::image::from_blob(blob, 0, 1), invalid_argument);
-        CHECK_THROWS_AS(sc::image::from_blob(blob, 2, 1, 0, 127.5, true), invalid_argument);
-        CHECK_THROWS_AS(sc::image::from_blob(grayscale_blob, 3, 1, 2), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::from_blob(nullptr, 2, 1), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::from_blob(blob, 0, 1), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::from_blob(blob, 2, 1, 0, 127.5, true), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::from_blob(grayscale_blob, 3, 1, 2), invalid_argument);
         const float invalid_blob[] = {0.0f, 0.0f, std::numeric_limits<float>::infinity()};
-        CHECK_THROWS_AS(sc::image::from_blob(invalid_blob, 1, 1), invalid_argument);
+        CHECK_THROWS_AS(sc::image::picture::from_blob(invalid_blob, 1, 1), invalid_argument);
     }
 
     SECTION("Saving round trips");
     {
-        const sc::image original{source};
+        const sc::image::picture original{source};
         const auto resized = original.resized({64, 48});
         const auto path = (scratch / "saved.png").string();
 
@@ -303,16 +303,16 @@ int main() {
         CHECK(filesystem::exists(path));
         CHECK_LT(uintmax_t{0}, filesystem::file_size(path));
 
-        const sc::image reloaded{path};
+        const sc::image::picture reloaded{path};
         CHECK_EQ(reloaded.size(), resized.size());
     }
 
     SECTION("Drawing leaves the image usable");
     {
-        sc::image canvas{source};
-        CHECK_NOTHROW(canvas.draw(sc::text{"label", {10, 10}}));
-        CHECK_NOTHROW(canvas.draw(sc::circle_i{{20, 20}, 5}, sc::stroke{sc::color::Green, 2}));
-        CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 2, 30, 40}, sc::stroke{sc::color::Blue, 2}));
+        sc::image::picture canvas{source};
+        CHECK_NOTHROW(canvas.draw(sc::graphics::text{"label", {10, 10}}));
+        CHECK_NOTHROW(canvas.draw(sc::circle_i{{20, 20}, 5}, sc::graphics::stroke{sc::color::Green, 2}));
+        CHECK_NOTHROW(canvas.draw(sc::rect_i{1, 2, 30, 40}, sc::graphics::stroke{sc::color::Blue, 2}));
         // Drawing is in place and must not resize anything.
         CHECK_EQ(canvas.size(), sc::size_i(source_width, source_height));
         CHECK(!canvas.empty());
@@ -323,21 +323,21 @@ int main() {
 
     SECTION("A blank image, and its bytes");
     {
-        const sc::image blank{sc::size_i{30, 20}, sc::color::Red};
+        const sc::image::picture blank{sc::size_i{30, 20}, sc::color::Red};
         CHECK_EQ(blank.size(), sc::size_i(30, 20));
         CHECK_EQ(blank.channels(), 3);
         const auto png = blank.encoded();
-        CHECK_EQ(sc::image{png}.size(), sc::size_i(30, 20)); // PNG bytes load back
+        CHECK_EQ(sc::image::picture{png}.size(), sc::size_i(30, 20)); // PNG bytes load back
         CHECK(!blank.encoded("jpg", 50).empty());
         CHECK_THROWS_AS(blank.encoded("nope"), std::runtime_error);
-        CHECK_THROWS_AS((sc::image{sc::size_i{0, 5}, sc::color::Red}), std::invalid_argument);
+        CHECK_THROWS_AS((sc::image::picture{sc::size_i{0, 5}, sc::color::Red}), std::invalid_argument);
     }
 
     SECTION("Clipping: only what's inside the clip is painted, clips nest");
     {
-        sc::image canvas{sc::size_i{100, 100}, sc::color::Black};
-        sc::drawing clipped{{100, 100}};
-        clipped.add(sc::rect{10, 10, 80, 80}, sc::appearance::filled(sc::color::White), to_path(sc::circle{{50, 50}, 20}));
+        sc::image::picture canvas{sc::size_i{100, 100}, sc::color::Black};
+        sc::graphics::drawing clipped{{100, 100}};
+        clipped.add(sc::rect{10, 10, 80, 80}, sc::graphics::appearance::filled(sc::color::White), to_path(sc::circle{{50, 50}, 20}));
         canvas.draw(clipped);
         auto found = canvas.find_min_area_rects(100);
         CHECK_EQ(found.size(), size_t{1});
@@ -347,12 +347,12 @@ int main() {
         }
 
         // A clip inside another: only their overlap; popping one goes back to the other.
-        sc::image nested{sc::size_i{100, 100}, sc::color::Black};
+        sc::image::picture nested{sc::size_i{100, 100}, sc::color::Black};
         nested.push_clip(to_path(sc::rect{0, 0, 60, 100}));
         nested.push_clip(to_path(sc::rect{40, 0, 60, 100}));
-        nested.draw(sc::rect{0, 0, 100, 50}, sc::appearance::filled(sc::color::White));
+        nested.draw(sc::rect{0, 0, 100, 50}, sc::graphics::appearance::filled(sc::color::White));
         nested.pop_clip();
-        nested.draw(sc::rect{0, 60, 100, 40}, sc::appearance::filled(sc::color::White));
+        nested.draw(sc::rect{0, 60, 100, 40}, sc::graphics::appearance::filled(sc::color::White));
         nested.pop_clip();
         found = nested.find_min_area_rects(100);
         CHECK_EQ(found.size(), size_t{2});
@@ -365,41 +365,41 @@ int main() {
     SECTION("Fill rules: nonzero adds outlines up by direction, even-odd toggles; open outlines fill as if closed");
     {
         // Whether the middle of box is painted white (on black).
-        const auto white_at = [](const sc::image &picture, const sc::rect_i &box) {
+        const auto white_at = [](const sc::image::picture &picture, const sc::rect_i &box) {
             return !picture.cropped(box).find_min_area_rects(box.width() * box.height() / 2.0).empty();
         };
         sc::path same_way; // two squares wound the same way, overlapping in 40..60
         same_way.move_to({10, 10}).line_to({60, 10}).line_to({60, 60}).line_to({10, 60}).close();
         same_way.move_to({40, 40}).line_to({90, 40}).line_to({90, 90}).line_to({40, 90}).close();
-        sc::image nonzero{sc::size_i{100, 100}, sc::color::Black};
-        nonzero.draw(same_way, sc::appearance::filled(sc::color::White));
+        sc::image::picture nonzero{sc::size_i{100, 100}, sc::color::Black};
+        nonzero.draw(same_way, sc::graphics::appearance::filled(sc::color::White));
         CHECK(white_at(nonzero, {45, 45, 10, 10})); // the overlap stays filled
-        sc::image even_odd{sc::size_i{100, 100}, sc::color::Black};
-        even_odd.draw(same_way, sc::appearance::filled(sc::fill{sc::color::White, sc::fill_rule::even_odd}));
+        sc::image::picture even_odd{sc::size_i{100, 100}, sc::color::Black};
+        even_odd.draw(same_way, sc::graphics::appearance::filled(sc::graphics::fill{sc::color::White, sc::graphics::fill_rule::even_odd}));
         CHECK(!white_at(even_odd, {45, 45, 10, 10})); // the overlap toggles back
         CHECK(white_at(even_odd, {15, 15, 10, 10}));
 
         sc::path ring; // an inner square wound the other way: a hole by either rule
         ring.move_to({10, 10}).line_to({90, 10}).line_to({90, 90}).line_to({10, 90}).close();
         ring.move_to({30, 30}).line_to({30, 70}).line_to({70, 70}).line_to({70, 30}).close();
-        sc::image holed{sc::size_i{100, 100}, sc::color::Black};
-        holed.draw(ring, sc::appearance::filled(sc::color::White));
+        sc::image::picture holed{sc::size_i{100, 100}, sc::color::Black};
+        holed.draw(ring, sc::graphics::appearance::filled(sc::color::White));
         CHECK(!white_at(holed, {45, 45, 10, 10}));
         CHECK(white_at(holed, {12, 45, 10, 10}));
 
         sc::path open; // never closed: filled as if it were
         open.move_to({10, 10}).line_to({90, 10}).line_to({90, 90}).line_to({10, 90});
-        sc::image filled{sc::size_i{100, 100}, sc::color::Black};
-        filled.draw(open, sc::appearance::filled(sc::color::White));
+        sc::image::picture filled{sc::size_i{100, 100}, sc::color::Black};
+        filled.draw(open, sc::graphics::appearance::filled(sc::color::White));
         CHECK(white_at(filled, {45, 45, 10, 10}));
     }
 
     SECTION("A linear gradient fill: each pixel the gradient's colour where it falls");
     {
-        const sc::linear_gradient red_to_blue{{0, 0}, {100, 0}, {{0, sc::color::Red}, {1, sc::color::Blue}}};
-        sc::image canvas{sc::size_i{100, 40}, sc::color::Black};
-        canvas.draw(sc::rect{0, 0, 100, 20}, sc::appearance::filled(red_to_blue));
-        canvas.draw(sc::circle{{50, 30}, 8}, sc::appearance::filled(red_to_blue));
+        const sc::graphics::linear_gradient red_to_blue{{0, 0}, {100, 0}, {{0, sc::color::Red}, {1, sc::color::Blue}}};
+        sc::image::picture canvas{sc::size_i{100, 40}, sc::color::Black};
+        canvas.draw(sc::rect{0, 0, 100, 20}, sc::graphics::appearance::filled(red_to_blue));
+        canvas.draw(sc::circle{{50, 30}, 8}, sc::graphics::appearance::filled(red_to_blue));
         const auto left = colour_at(canvas, 2, 10), middle = colour_at(canvas, 50, 10), right = colour_at(canvas, 97, 10);
         CHECK_LT(0.9, left[0]);
         CHECK_LT(left[2], 0.1);
@@ -416,8 +416,8 @@ int main() {
     SECTION("A bitmap: decoded and stretched into its box, flipped in a drawing");
     {
         // 3 by 2: red, green, blue over blue, green, red.
-        const sc::bitmap dots{sc::base64::decode("iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAEUlEQVR4nGP4z8DAgMAgyAAAO9gF+4ea2nQAAAAASUVORK5CYII=")};
-        sc::image canvas{sc::size_i{40, 30}, sc::color::Black};
+        const sc::graphics::bitmap dots{sc::base64::decode("iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAEUlEQVR4nGP4z8DAgMAgyAAAO9gF+4ea2nQAAAAASUVORK5CYII=")};
+        sc::image::picture canvas{sc::size_i{40, 30}, sc::color::Black};
         canvas.draw(dots, sc::rect{0, 0, 30, 20});
         // Each colour kept before it's checked: CHECK_LT holds what it's given by reference.
         const auto top_left = colour_at(canvas, 4, 4), top_middle = colour_at(canvas, 15, 4), top_right = colour_at(canvas, 25, 4);
@@ -431,22 +431,22 @@ int main() {
         const auto outside = colour_at(canvas, 35, 25);
         CHECK_LT(outside[0] + outside[1] + outside[2], 0.05);
 
-        sc::drawing mirrored{{30, 20}};
+        sc::graphics::drawing mirrored{{30, 20}};
         mirrored.draw(dots, sc::rect{0, 0, 30, 20});
         mirrored.flip_horizontal();
-        sc::image flipped{sc::size_i{30, 20}, sc::color::Black};
+        sc::image::picture flipped{sc::size_i{30, 20}, sc::color::Black};
         flipped.draw(mirrored);
         const auto mirrored_left = colour_at(flipped, 4, 4), mirrored_right = colour_at(flipped, 25, 4);
         CHECK_LT(0.9, mirrored_left[2]); // blue now top left
         CHECK_LT(0.9, mirrored_right[0]);
     }
 
-    SECTION("Drawing as an sc::canvas");
+    SECTION("Drawing as an sc::graphics::canvas");
     {
         const float blank[60 * 40]{};
-        auto canvas = sc::image::from_blob(blank, 60, 40, 1);
-        canvas.draw(sc::rect{5, 5, 20, 10}, sc::appearance::filled(sc::color::White)); // filled, no outline
-        canvas.draw(sc::circle{{45, 25}, 8}, sc::appearance::filled(sc::color::White));
+        auto canvas = sc::image::picture::from_blob(blank, 60, 40, 1);
+        canvas.draw(sc::rect{5, 5, 20, 10}, sc::graphics::appearance::filled(sc::color::White)); // filled, no outline
+        canvas.draw(sc::circle{{45, 25}, 8}, sc::graphics::appearance::filled(sc::color::White));
         const auto found = canvas.find_min_area_rects(20);
         CHECK_EQ(found.size(), size_t{2});
         for (const auto &shape: found) {
@@ -458,28 +458,28 @@ int main() {
             }
         }
 
-        sc::canvas &any = canvas; // the same calls as on an sc::pdflite::writer
-        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, {sc::stroke{sc::color::Red, 2}, sc::color::Blue}));
+        sc::graphics::canvas &any = canvas; // the same calls as on an sc::pdflite::writer
+        CHECK_NOTHROW(any.draw(sc::rotated_rect{{30, 20}, {10, 4}, 30}, {sc::graphics::stroke{sc::color::Red, 2}, sc::color::Blue}));
         CHECK_NOTHROW(any.draw(sc::polygon{{1.5, 1.5}, {10.5, 1.5}, {5, 9}}));
         CHECK_NOTHROW(any.draw(sc::rounded_rect{sc::rect{2, 2, 30, 20}, 5}));
-        CHECK_NOTHROW(any.draw(sc::text{"Hi", {2, 30}, sc::font::bold("serif", 12)}, sc::color::White));
-        CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::stroke{sc::color::Green, 1.5}));
+        CHECK_NOTHROW(any.draw(sc::graphics::text{"Hi", {2, 30}, sc::graphics::font::bold("serif", 12)}, sc::color::White));
+        CHECK_NOTHROW(any.draw(sc::line{{0, 0}, {59, 39}}, sc::graphics::stroke{sc::color::Green, 1.5}));
 
-        auto drawing = sc::image::from_blob(blank, 60, 40, 1);
-        const auto ring = sc::drawing::from_svg(R"svg(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">)svg"
+        auto drawing = sc::image::picture::from_blob(blank, 60, 40, 1);
+        const auto ring = sc::graphics::drawing::from_svg(R"svg(<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">)svg"
                                                 R"svg(<path fill-rule="evenodd" fill="#ffffff" d="M0 0 H40 V40 H0 Z M10 10 V30 H30 V10 Z"/></svg>)svg");
         drawing.draw(ring, sc::rect{10, 0, 40, 40}); // a square with a square hole, centred
         const auto outer = drawing.find_min_area_rects(100);
         CHECK_EQ(outer.size(), size_t{1}); // one outline: the hole doesn't make a second shape
         if (!outer.empty()) CHECK_NEAR(outer[0].center().x(), 30.0, 1.5);
 
-        sc::image empty;
+        sc::image::picture empty;
         CHECK_NOTHROW(empty.draw(sc::rect{0, 0, 5, 5})); // nothing to draw on, nothing happens
 
-        const sc::text label{"label", {0, 0}, {"sans-serif", 20}};
+        const sc::graphics::text label{"label", {0, 0}, {"sans-serif", 20}};
         const double width = canvas.text_width(label);
         CHECK_BETWEEN(width, 30.0, 80.0);
-        CHECK_NEAR(canvas.text_width(sc::text{"label", {}, {"sans-serif", 40}}), 2 * width, 0.2 * width); // within 10%: strokes step in pixels
+        CHECK_NEAR(canvas.text_width(sc::graphics::text{"label", {}, {"sans-serif", 40}}), 2 * width, 0.2 * width); // within 10%: strokes step in pixels
         CHECK_EQ(empty.text_width(label), width); // no pixels needed to measure
         CHECK_LT(canvas.text_x_height({"sans-serif", 20}), canvas.text_cap_height({"sans-serif", 20}));
         CHECK_BETWEEN(canvas.text_cap_height({"sans-serif", 20}), 10.0, 22.0);
@@ -491,7 +491,7 @@ int main() {
         const auto directory = std::filesystem::temp_directory_path() / "sc-image-log-level";
         std::filesystem::create_directories(directory);
         const auto whole = directory / "whole.jpg", damaged = directory / "damaged.jpg";
-        sc::image{sc::size_i{64, 64}, sc::color{0.2, 0.6, 0.3}}.save(whole.string());
+        sc::image::picture{sc::size_i{64, 64}, sc::color{0.2, 0.6, 0.3}}.save(whole.string());
         std::filesystem::copy_file(whole, damaged, std::filesystem::copy_options::overwrite_existing);
         std::filesystem::resize_file(damaged, std::filesystem::file_size(whole) * 2 / 3); // cut short
 
@@ -504,7 +504,7 @@ int main() {
             std::FILE *file = std::fopen(captured.c_str(), "w");
             dup2(fileno(file), fileno(stderr));
             try {
-                sc::image read{damaged.string()};
+                sc::image::picture read{damaged.string()};
             } catch (const std::exception &) {
                 // read as far as it goes, or not at all: either way, only the output counts here
             }

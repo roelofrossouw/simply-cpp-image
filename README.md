@@ -1,9 +1,9 @@
 # simply-cpp-image
 
 C++20 wrapper around OpenCV for loading, saving, displaying, drawing on and pre-processing images,
-plus SVG rendering (`sc::svg2png`: SVG read by sc-graphics' `sc::drawing`, drawn with OpenCV),
+plus SVG rendering (`sc::image::svg2png`: SVG read by sc-graphics' `sc::graphics::drawing`, drawn with OpenCV),
 `svg2img`, a tool that turns SVG files into PNG, JPEG, WebP, BMP or TIFF images, and
-`sc::image_quality` with its tool `image-quality`: is a camera's picture fit to look at, or is the
+`sc::image::quality` with its tool `image-quality`: is a camera's picture fit to look at, or is the
 camera covered, blacked out, out of focus or sending broken files.
 
 **Documentation:** the [simply-cpp wiki](https://github.com/roelofrossouw/simply-cpp/wiki) has an [images guide](https://github.com/roelofrossouw/simply-cpp/wiki/Images) and the [sc-image reference](https://github.com/roelofrossouw/simply-cpp/wiki/Reference-sc-image), plus [getting started](https://github.com/roelofrossouw/simply-cpp/wiki/Getting-Started) for the whole suite.
@@ -30,8 +30,8 @@ sudo apt -y install simply-cpp-dev simply-cpp-image-dev
 
 - **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above).
 - **OpenCV** (core, imgproc, imgcodecs, dnn, ml and videoio) - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
-- **simply-cpp-graphics (sc-graphics)** - the canvas sc::image implements, and the SVG reader
-  `sc::svg2png` uses.
+- **simply-cpp-graphics (sc-graphics)** - the canvas sc::image::picture implements, and the SVG reader
+  `sc::image::svg2png` uses.
 
 ## Usage
 
@@ -47,33 +47,33 @@ target_link_libraries(myapp PRIVATE sc::sc-image)
 ```cpp
 #include <sc/image/image.h>
 
-sc::image image{"input.jpg"}; // throws std::runtime_error if it can't be read
+sc::image::picture image{"input.jpg"}; // throws std::runtime_error if it can't be read
 
 const auto cropped = image.cropped({0, 0, 320, 240});
 auto resized = cropped.resized({160, 120}); // not const: drawing changes it
-resized.draw(sc::text{"preview", {10, 24}, {"sans-serif", 16}}, sc::color::White);
+resized.draw(sc::graphics::text{"preview", {10, 24}, {"sans-serif", 16}}, sc::color::White);
 resized.save("output.jpg");
 ```
 
 `resized()`, `cropped()`, and `side_by_side()` return new images. The two images passed to `side_by_side()` must have the same height. `resize_to()`, `crop()`, the drawing methods, and `snap_to_size()` modify the current image.
 
-An `sc::image` is an `sc::canvas` (sc-graphics), so shapes and text are drawn on it with the same
-calls as on an `sc::pdflite::writer`: `draw(shape, appearance)`, in pixels. An `sc::appearance` is a stroke (a
+An `sc::image::picture` is an `sc::graphics::canvas` (sc-graphics), so shapes and text are drawn on it with the same
+calls as on an `sc::pdflite::writer`: `draw(shape, appearance)`, in pixels. An `sc::graphics::appearance` is a stroke (a
 colour and a width; black, 1 pixel by default) and a fill (a colour; none by default): a colour
-converts to an outline, `{stroke, fill}` gives both, `sc::appearance::filled(fill)` only the inside.
+converts to an outline, `{stroke, fill}` gives both, `sc::graphics::appearance::filled(fill)` only the inside.
 Points are rounded to whole pixels, edges antialiased, and clip paths honoured. Colours are painted opaque: a partly
 transparent one is drawn solid (only the PDF engines honour alpha), a fully transparent one not at all:
 
 ```cpp
-sc::image canvas{"input.jpg"};
+sc::image::picture canvas{"input.jpg"};
 canvas.draw(sc::rect{10, 10, 80, 40});                                       // black outline, 1 pixel
-canvas.draw(sc::rounded_rect{sc::rect{10, 10, 80, 40}, 6}, sc::stroke{sc::color::Red, 2}); // rounded corners
+canvas.draw(sc::rounded_rect{sc::rect{10, 10, 80, 40}, 6}, sc::graphics::stroke{sc::color::Red, 2}); // rounded corners
 canvas.draw(sc::rotated_rect{{50, 50}, {80, 40}, 15}, sc::color::Blue);       // a colour: a stroke 1 wide
 canvas.draw(sc::polygon{{10, 10}, {90, 10}, {50, 50}}, {sc::color::Black, sc::color{"gold"}});
-canvas.draw(sc::circle{{50, 50}, 20}, sc::appearance::filled(sc::color::White)); // filled only
-canvas.draw(sc::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White); // baseline at y = 24
-canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::stroke{sc::color::Red, 2});
-for (const auto &contour: canvas.find_contours()) canvas.draw(contour, sc::stroke{sc::color::Blue, 2});
+canvas.draw(sc::circle{{50, 50}, 20}, sc::graphics::appearance::filled(sc::color::White)); // filled only
+canvas.draw(sc::graphics::text{"label", {10, 24}, {"sans-serif", 16}}, sc::color::White); // baseline at y = 24
+canvas.draw(sc::line{{0, 0}, {100, 100}}, sc::graphics::stroke{sc::color::Red, 2});
+for (const auto &contour: canvas.find_contours()) canvas.draw(contour, sc::graphics::stroke{sc::color::Blue, 2});
 ```
 
 Text is drawn in the installed face `font.face()` finds (fontconfig's substitute when the family
@@ -87,16 +87,16 @@ any other polygon.
 To display two equal-height images together:
 
 ```cpp
-sc::image left_face{"left.jpg"};
-sc::image right_face{"right.jpg"};
-const auto comparison = sc::image::side_by_side(left_face, right_face);
+sc::image::picture left_face{"left.jpg"};
+sc::image::picture right_face{"right.jpg"};
+const auto comparison = sc::image::picture::side_by_side(left_face, right_face);
 comparison.save("comparison.jpg");
 ```
 
 ### Warnings about damaged files
 
 libjpeg warns on stderr about a damaged JPEG ("Corrupt JPEG data: premature end of data
-segment") while reading it as far as it goes. On Linux these follow `sc::image`'s log level:
+segment") while reading it as far as it goes. On Linux these follow `sc::image::picture`'s log level:
 written at `sc::log_level::warning` (the default) and above, so
 `sc::image::log_level(sc::log_level::error)` keeps them quiet. (OpenCV, which reads the files,
 has no setting for this, so sc-image takes the place of libjpeg's `jpeg_std_error()`; on macOS
@@ -115,22 +115,22 @@ const size_t count = image.blob_size();
 To create an image from a float blob, provide contiguous RGB planes in `[1, 3, height, width]` order. For a `[0, 1]` blob:
 
 ```cpp
-sc::image image = sc::image::from_blob(data, width, height);
+sc::image::picture image = sc::image::picture::from_blob(data, width, height);
 ```
 
 To reverse `generate_blob()` normalization (including centered ranges such as `[-0.5, 0.5]`), pass the same scale, mean, and channel-swap arguments used to generate it:
 
 ```cpp
-sc::image image = sc::image::from_blob(data, width, height, 1.0 / 255.0, 127.5, true);
+sc::image::picture image = sc::image::picture::from_blob(data, width, height, 1.0 / 255.0, 127.5, true);
 ```
 
 ### SVG to images
 
 ```cpp
-const std::string png = sc::svg2png::FromFile("logo.svg");                        // its own size
-const std::string big = sc::svg2png::FromString(svg, 800, 0, sc::color::White);  // 800 wide, on white
-const sc::size own = sc::svg2png::Size(svg);                                     // its width and height
-sc::image{big}.save("logo.jpg", 90);                                             // JPEG at quality 90
+const std::string png = sc::image::svg2png::from_file("logo.svg");                        // its own size
+const std::string big = sc::image::svg2png::from_string(svg, 800, 0, sc::color::White);  // 800 wide, on white
+const sc::size own = sc::image::svg2png::size(svg);                                     // its width and height
+sc::image::picture{big}.save("logo.jpg", 90);                                             // JPEG at quality 90
 ```
 
 A width or height of 0 keeps the aspect ratio; both 0 is the SVG's own size. It draws what
@@ -141,18 +141,18 @@ font's own glyphs, measured in the same font, so `text-anchor` lines up.
 Clip paths are drawn, smooth-edged, and so is a white mask (read as a clip); paths fill by their
 fill rule (nonzero or even-odd), open outlines as if closed.
 
-Images (PNG or JPEG, an `sc::bitmap`, an SVG `<image>`'s data: URI) are decoded and resampled into
+Images (PNG or JPEG, an `sc::graphics::bitmap`, an SVG `<image>`'s data: URI) are decoded and resampled into
 place, their alpha honoured. Linear gradients are drawn too. TODO: radial gradients (drawn in their middle colour), masks by
 their luminance, and a gradient's stop opacity; a transparent background comes out white.
 
 ### Video files
 
-`sc::video` (`video.h`) reads a video a frame at a time through OpenCV's videoio (FFmpeg on Ubuntu
-and Homebrew, so MP4, MOV, MKV, AVI and the rest). Each frame is an `sc::image`, three-channel BGR
+`sc::image::video` (`video.h`) reads a video a frame at a time through OpenCV's videoio (FFmpeg on Ubuntu
+and Homebrew, so MP4, MOV, MKV, AVI and the rest). Each frame is an `sc::image::picture`, three-channel BGR
 like a loaded photo, with its number and its time in the video:
 
 ```cpp
-sc::video clip{"dashcam.mp4"};                      // throws std::runtime_error if it isn't a video
+sc::image::video clip{"dashcam.mp4"};                      // throws std::runtime_error if it isn't a video
 clip.size();                                        // [704,576]: pixels
 clip.fps();                                         // 15: frames a second, as the file declares
 clip.duration();                                    // 15000ms
@@ -166,13 +166,13 @@ frames between are skipped without being decoded. sc-ai's `sc-ai-demo --video` r
 
 ### Camera pictures' quality
 
-`sc::image_quality` (`image_quality.h`) tells whether a camera's picture is fit to look at, from
+`sc::image::quality` (`image_quality.h`) tells whether a camera's picture is fit to look at, from
 plain measurements (no model; a few milliseconds a picture after decoding). The picture is greyed
 and scaled to 640 wide first, so the numbers don't depend on its size, and cut into a 4 x 4 grid of
 cells measured each on its own:
 
 ```cpp
-const auto quality = sc::image_quality::of(std::filesystem::path{"snapshot.jpg"}); // or of(image), of_bytes(bytes)
+const auto quality = sc::image::quality::of(std::filesystem::path{"snapshot.jpg"}); // or of(image), of_bytes(bytes)
 to_string(quality.outcome);   // "ok", "corrupt", "uniform", "covered", "dark", "bright" or "blurred"
 quality.reason;               // why it's corrupt: "JPEG cut short (no end marker)", ...
 quality.sharpness;            // the cells' median variance of the Laplacian: under 35 is blurred
@@ -185,10 +185,10 @@ quality.fingerprint;          // 64 bits, for a camera sending the same picture 
 
 The verdict is the first that holds, in that order: corrupt (not an image, or a JPEG without its end
 marker), uniform, dark, bright, covered, blurred, else ok. The limits are an
-`sc::image_quality::limits` (`of(picture, limits)`). The sharpness is the cells' median so that a
+`sc::image::quality::limits` (`of(picture, limits)`). The sharpness is the cells' median so that a
 camera's own date and time, sharp text on a blurred picture, doesn't make it look sharp.
 
-A frozen camera sends the same picture again: `sc::image_quality::differs(last, quality.fingerprint)`
+A frozen camera sends the same picture again: `sc::image::quality::differs(last, quality.fingerprint)`
 counts the bits that differ, under about 5 being the same picture. Keeping each camera's last
 fingerprint is the caller's part, and a parked vehicle's camera sees the same scene too.
 
@@ -221,7 +221,7 @@ svg2img logo.svg -H 300 -b "#ffeedd"     # 300 high, on a cream background
 The type comes from `--type` (png, jpg, webp, bmp, tiff), else the output's extension, else PNG;
 without an output the input's name gets the type's extension. `--quality` (1 to 100, 95 by
 default) sets JPEG and WebP quality. Images go on white unless `--background` gives another colour.
-It draws what `sc::svg2png` does (see the TODO above). `--help` lists the options.
+It draws what `sc::image::svg2png` does (see the TODO above). `--help` lists the options.
 
 ## Demo
 
@@ -243,25 +243,25 @@ configure time, so it always matches code that compiles:
 <!-- sc-example: examples/sc-image-demo.cpp -->
 ```cpp
 if (source.empty()) {
-    sc::console::heading("Rendering an SVG to PNG (sc::svg2png)");
+    sc::console::heading("Rendering an SVG to PNG (sc::image::svg2png)");
     const std::string svg = R"(<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200">)"
                             R"(<rect width="320" height="200" fill="#2a6f97"/>)"
                             R"(<circle cx="160" cy="100" r="70" fill="#f4d35e"/></svg>)";
-    const auto png = sc::svg2png::FromString(svg);
-    sc::console::show_text("sc::svg2png::FromString(svg)", std::to_string(png.size()) + " bytes of PNG");
+    const auto png = sc::image::svg2png::from_string(svg);
+    sc::console::show_text("sc::image::svg2png::from_string(svg)", std::to_string(png.size()) + " bytes of PNG");
     source = (folder / "sc-image-demo.png").string();
     std::ofstream{source, std::ios::binary} << png;
 }
 
 sc::console::heading("Loading and editing (OpenCV)");
-const sc::image image{source};
-sc::console::step("const sc::image image{source};   // " + source);
+const sc::image::picture image{source};
+sc::console::step("const sc::image::picture image{source};   // " + source);
 SC_SHOW(image.size());
 auto preview = image.resized({160, 100});
 sc::console::step("auto preview = image.resized({160, 100});");
 SC_SHOW(preview.size());
-SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::stroke{sc::color::White, 2}));
-SC_STEP(preview.draw(sc::text{"simply-cpp", {20, 56}, sc::font::bold("sans-serif", 18)}, sc::color::White));
+SC_STEP(preview.draw(sc::rect{10, 10, 140, 80}, sc::graphics::stroke{sc::color::White, 2}));
+SC_STEP(preview.draw(sc::graphics::text{"simply-cpp", {20, 56}, sc::graphics::font::bold("sans-serif", 18)}, sc::color::White));
 
 sc::console::heading("Saving");
 SC_SHOW(preview.save(output));

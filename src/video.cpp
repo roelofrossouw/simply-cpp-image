@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace sc {
+namespace sc::image {
     namespace impl {
         struct video_internals {
             cv::VideoCapture capture;
@@ -26,12 +26,12 @@ namespace sc {
     }
 
     video::video(const std::filesystem::path &file) : impl(std::make_unique<impl::video_internals>()) {
-        if (!std::filesystem::exists(file)) throw std::runtime_error("sc::video: no such file " + file.string());
+        if (!std::filesystem::exists(file)) throw std::runtime_error("sc::image::video: no such file " + file.string());
         // FFmpeg alone where OpenCV has it: the others (GStreamer on Linux) would only be tried
         // after it for a file it can't read, and fill the log with their own complaints.
         static const bool ffmpeg = cv::videoio_registry::hasBackend(cv::CAP_FFMPEG);
         if (!impl->capture.open(file.string(), ffmpeg ? cv::CAP_FFMPEG : cv::CAP_ANY) || !impl->capture.isOpened())
-            throw std::runtime_error("sc::video: can't read " + file.string() + " as a video");
+            throw std::runtime_error("sc::image::video: can't read " + file.string() + " as a video");
         impl->fps = impl->capture.get(cv::CAP_PROP_FPS);
         if (!std::isfinite(impl->fps) || impl->fps < 0) impl->fps = 0;
     }
@@ -77,7 +77,7 @@ namespace sc {
             if (in.target && time + half_frame < *in.target) continue;
             cv::Mat decoded;
             if (!in.capture.retrieve(decoded) || decoded.empty()) return std::nullopt;
-            frame out{image{}, number, time};
+            frame out{picture{}, number, time};
             out.picture.impl->image_mat = std::move(decoded);
             out.picture.size_ = {out.picture.impl->image_mat.cols, out.picture.impl->image_mat.rows};
             // The next time wanted; after a gap longer than every (or with every 0), from this frame.

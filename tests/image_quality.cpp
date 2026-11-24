@@ -22,14 +22,14 @@ namespace {
         return picture;
     }
 
-    // An sc::image of these pixels, through PNG so only the public API is used.
-    sc::image image_of(const cv::Mat &pixels) {
+    // An sc::image::picture of these pixels, through PNG so only the public API is used.
+    sc::image::picture image_of(const cv::Mat &pixels) {
         std::vector<uchar> png;
         cv::imencode(".png", pixels, png);
-        return sc::image{std::string{png.begin(), png.end()}};
+        return sc::image::picture{std::string{png.begin(), png.end()}};
     }
 
-    sc::image_quality quality_of(const cv::Mat &pixels) { return sc::image_quality::of(image_of(pixels)); }
+    sc::image::quality quality_of(const cv::Mat &pixels) { return sc::image::quality::of(image_of(pixels)); }
 
     std::string jpeg_of(const cv::Mat &pixels, const int quality = 90) {
         std::vector<uchar> bytes;
@@ -44,7 +44,7 @@ namespace {
 }
 
 int main() {
-    using enum sc::image_quality::verdict;
+    using enum sc::image::quality::verdict;
     const auto busy = scene(1);
 
     SECTION("A sharp, busy picture is ok");
@@ -109,37 +109,37 @@ int main() {
     SECTION("Files: a JPEG cut short and bytes that aren't an image are corrupt");
     {
         const auto whole = jpeg_of(busy);
-        CHECK_EQ(to_string(sc::image_quality::of_bytes(whole).outcome), std::string{"ok"});
+        CHECK_EQ(to_string(sc::image::quality::of_bytes(whole).outcome), std::string{"ok"});
         // Padded after its end marker, as dashcams do: still whole.
-        CHECK_EQ(to_string(sc::image_quality::of_bytes(whole + std::string(16, '\0')).outcome), std::string{"ok"});
-        CHECK_EQ(to_string(sc::image_quality::of_bytes(whole + "\x00\xdb\xd2\x93\xdc\x52" + std::string(8, '\xff')).outcome), std::string{"ok"});
-        const auto cut = sc::image_quality::of_bytes(whole.substr(0, whole.size() * 6 / 10));
+        CHECK_EQ(to_string(sc::image::quality::of_bytes(whole + std::string(16, '\0')).outcome), std::string{"ok"});
+        CHECK_EQ(to_string(sc::image::quality::of_bytes(whole + "\x00\xdb\xd2\x93\xdc\x52" + std::string(8, '\xff')).outcome), std::string{"ok"});
+        const auto cut = sc::image::quality::of_bytes(whole.substr(0, whole.size() * 6 / 10));
         CHECK_EQ(to_string(cut.outcome), std::string{"corrupt"});
         CHECK_EQ(cut.reason, std::string{"JPEG cut short (no end marker)"});
-        const auto junk = sc::image_quality::of_bytes("this is no picture");
+        const auto junk = sc::image::quality::of_bytes("this is no picture");
         CHECK_EQ(to_string(junk.outcome), std::string{"corrupt"});
         CHECK(!junk.reason.empty());
-        CHECK_EQ(to_string(sc::image_quality::of_bytes("").outcome), std::string{"corrupt"});
-        CHECK_EQ(to_string(sc::image_quality::of(std::filesystem::path{"/nonexistent/x.jpg"}).outcome), std::string{"corrupt"});
+        CHECK_EQ(to_string(sc::image::quality::of_bytes("").outcome), std::string{"corrupt"});
+        CHECK_EQ(to_string(sc::image::quality::of(std::filesystem::path{"/nonexistent/x.jpg"}).outcome), std::string{"corrupt"});
     }
 
     SECTION("Fingerprints: the same picture again, and another one");
     {
         const auto first = quality_of(busy).fingerprint;
-        const auto again = sc::image_quality::of_bytes(jpeg_of(busy, 60)).fingerprint;
-        CHECK_LT(sc::image_quality::differs(first, again), 5);
-        CHECK(sc::image_quality::differs(first, quality_of(scene(2)).fingerprint) > 10);
-        CHECK_EQ(sc::image_quality::differs(first, first), 0);
+        const auto again = sc::image::quality::of_bytes(jpeg_of(busy, 60)).fingerprint;
+        CHECK_LT(sc::image::quality::differs(first, again), 5);
+        CHECK(sc::image::quality::differs(first, quality_of(scene(2)).fingerprint) > 10);
+        CHECK_EQ(sc::image::quality::differs(first, first), 0);
     }
 
     SECTION("Small images and limits");
     {
         const auto small = quality_of(busy(cv::Rect{0, 0, 3, 2}).clone());
         CHECK_EQ(small.size, sc::size_i(3, 2));
-        sc::image_quality::limits limits;
+        sc::image::quality::limits limits;
         limits.grid_rows = 0;
-        CHECK_THROWS_AS((void) sc::image_quality::of(image_of(busy), limits), std::invalid_argument);
-        CHECK_EQ(to_string(sc::image_quality::of(sc::image{}).outcome), std::string{"corrupt"});
+        CHECK_THROWS_AS((void) sc::image::quality::of(image_of(busy), limits), std::invalid_argument);
+        CHECK_EQ(to_string(sc::image::quality::of(sc::image::picture{}).outcome), std::string{"corrupt"});
     }
 
     TEST_SUMMARY();

@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     // The command line: -h/--help comes with sc::params, which also reports mistakes and exits.
     const sc::params args{argc, argv, {
         {"name", "sc-image-transform"},
-        {"description", "Shows what sc::image can do to a picture: resize, crop, rotate and straighten it, turn it grey, join "
+        {"description", "Shows what sc::image::picture can do to a picture: resize, crop, rotate and straighten it, turn it grey, join "
                         "two side by side, and prepare it as a neural network's input. It only writes to the temporary "
                         "directory, so it's safe to run anywhere.\nMore on the wiki: "
                         "https://github.com/roelofrossouw/simply-cpp/wiki/Images"},
@@ -33,15 +33,15 @@ int main(int argc, char **argv) {
         if (source.empty()) {
             sc::console::output() << "No image given (sc-image-transform <image>), so using a rendered one\n";
             source = (folder / "sc-image-transform.png").string();
-            std::ofstream{source, std::ios::binary} << sc::svg2png::FromString(
+            std::ofstream{source, std::ios::binary} << sc::image::svg2png::from_string(
                 R"(<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">)"
                 R"(<rect width="640" height="360" fill="#87ceeb"/>)"
                 R"(<circle cx="520" cy="80" r="45" fill="#f4d35e"/>)"
                 R"(<rect y="270" width="640" height="90" fill="#3a7d44"/>)"
                 R"svg(<rect x="170" y="150" width="300" height="60" fill="#c0392b" transform="rotate(-15 320 180)"/></svg>)svg");
         }
-        const sc::image photo{source};
-        sc::console::step("const sc::image photo{source};   // " + source);
+        const sc::image::picture photo{source};
+        sc::console::step("const sc::image::picture photo{source};   // " + source);
         SC_SHOW(photo.size());
         SC_SHOW(photo.channels());
 
@@ -65,8 +65,8 @@ int main(int argc, char **argv) {
         SC_STEP(gray.channels(1));
         SC_SHOW(gray.channels());
         SC_STEP(gray.channels(3)); // back to three channels (still gray) to sit beside a colour one
-        const auto pair = sc::image::side_by_side(photo.resized({320, 180}), gray);
-        sc::console::step("const auto pair = sc::image::side_by_side(photo.resized({320, 180}), gray);");
+        const auto pair = sc::image::picture::side_by_side(photo.resized({320, 180}), gray);
+        sc::console::step("const auto pair = sc::image::picture::side_by_side(photo.resized({320, 180}), gray);");
         SC_SHOW(pair.size());
         SC_SHOW(pair.save((folder / "sc-image-transform-pair.jpg").string()));
 
@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
         SC_STEP(input.generate_blob(1.0 / 255, 0, true)); // scaled to 0..1, BGR swapped to RGB
         SC_SHOW(std::vector<int64_t>(input.blob_shape(), input.blob_shape() + input.blob_shape_size()));
         SC_SHOW(input.blob_size());
-        const auto back = sc::image::from_blob(input.blob(), input.size().width(), input.size().height(), 1.0 / 255, 0, true);
-        sc::console::step("const auto back = sc::image::from_blob(input.blob(), width, height, 1.0 / 255, 0, true);");
+        const auto back = sc::image::picture::from_blob(input.blob(), input.size().width(), input.size().height(), 1.0 / 255, 0, true);
+        sc::console::step("const auto back = sc::image::picture::from_blob(input.blob(), width, height, 1.0 / 255, 0, true);");
         SC_SHOW(back.size());
 
         sc::console::output() << "\nThe images are in " << folder.string() << " (sc-image-transform-*)\n";
