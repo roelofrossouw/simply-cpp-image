@@ -28,7 +28,7 @@ sudo apt -y install simply-cpp-dev simply-cpp-image-dev
 
 ## Dependencies
 
-- **simply-cpp (sc-core)** - sc-image's CMake package depends on it, so `find_package(sc-image CONFIG REQUIRED)` needs `simply-cpp` installed too. Neither the Homebrew formula nor the apt package currently pulls it in automatically, so install both explicitly (see above).
+- **simply-cpp (sc-core) and simply-cpp-geometry (sc-geometry)** - sc-image's CMake package finds them itself, and `simply-cpp-image-dev` (apt) and the `simply-cpp-image` formula pull them in.
 - **OpenCV** (core, imgproc, imgcodecs, dnn, ml and videoio) - `libopencv-dev` on apt, `opencv` on brew; installed automatically if missing when building from source. It's dynamically linked, so it must also be present on whichever machine runs a binary linked against sc-image - the build does not bundle it.
 - **simply-cpp-graphics (sc-graphics)** - the canvas sc::image::picture implements, and the SVG reader
   `sc::image::svg2png` uses.
@@ -61,8 +61,8 @@ An `sc::image::picture` is an `sc::graphics::canvas` (sc-graphics), so shapes an
 calls as on an `sc::pdflite::writer`: `draw(shape, appearance)`, in pixels. An `sc::graphics::appearance` is a stroke (a
 colour and a width; black, 1 pixel by default) and a fill (a colour; none by default): a colour
 converts to an outline, `{stroke, fill}` gives both, `sc::graphics::appearance::filled(fill)` only the inside.
-Points are rounded to whole pixels, edges antialiased, and clip paths honoured. Colours are painted opaque: a partly
-transparent one is drawn solid (only the PDF engines honour alpha), a fully transparent one not at all:
+Points are rounded to whole pixels, edges antialiased, and clip paths honoured. Colours are blended by their alpha
+(stroke and fill opacity), and a fully transparent one isn't drawn at all:
 
 ```cpp
 sc::image::picture canvas{"input.jpg"};
